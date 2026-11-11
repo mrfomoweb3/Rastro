@@ -1,0 +1,97 @@
+[
+  {
+    "id": "A-002030",
+    "object_type": "network",
+    "object_id": "N-007",
+    "step": "brief",
+    "actor": "code",
+    "model": "offline-fallback",
+    "summary": "Brief written from code template (offline).",
+    "rule_ids": [],
+    "cost_usd": 0.0,
+    "latency_ms": 0,
+    "created_at": "2026-11-10T12:07:21Z"
+  },
+  {
+    "id": "A-002031",
+    "object_type": "network",
+    "object_id": "N-007",
+    "step": "verify",
+    "actor": "code",
+    "model": null,
+    "summary": "Brief passed all checks (edges exist, numbers match, no names, no guilt).",
+    "rule_ids": [
+      "V-edges",
+      "V-numbers",
+      "V-names",
+      "V-guilt",
+      "R5"
+    ],
+    "cost_usd": 0.0,
+    "latency_ms": 0,
+    "created_at": "2026-11-10T12:07:21Z"
+  },
+  {
+    "id": "A-002045",
+    "object_type": "network",
+    "object_id": "N-007",
+    "step": "decide",
+    "actor": "code",
+    "model": "offline-fallback",
+    "summary": "P1, typology mule_network (0.95), score 385.5. One receiving account is linked to 40 different victims. Contains 1 P1 case(s) with the freeze window open; raised P2\u2192P1. (offline: code rulebook)",
+    "rule_ids": [
+      "R2",
+      "R3"
+    ],
+    "cost_usd": 0.0,
+    "latency_ms": 0,
+    "created_at": "2026-11-10T12:07:17Z"
+  },
+  {
+    "id": "A-002046",
+    "object_type": "network",
+    "object_id": "N-007",
+    "step": "brief",
+    "actor": "code",
+    "model": "offline-fallback",
+    "summary": "Brief written from code template (offline).",
+    "rule_ids": [],
+    "cost_usd": 0.0,
+    "latency_ms": 0,
+    "created_at": "2026-11-10T12:07:17Z"
+  },
+  {
+    "id": "A-002047",
+    "object_type": "network",
+    "object_id": "N-007",
+    "step": "verify",
+    "actor": "code",
+    "model": null,
+    "summary": "Brief passed all checks (edges exist, numbers match, no names, no guilt).",
+    "rule_ids": [
+      "V-edges",
+      "V-numbers",
+      "V-names",
+      "V-guilt",
+      "R5"
+    ],
+    "cost_usd": 0.0,
+    "latency_ms": 0,
+    "created_at": "2026-11-10T12:07:17Z"
+  },
+  {
+    "id": "A-002048",
+    "object_type": "network",
+    "object_id": "N-007",
+    "step": "rank",
+    "actor": "code",
+    "model": null,
+    "summary": "Re-ranked #6 \u2192 #1 by score.",
+    "rule_ids": [
+      "score"
+    ],
+    "cost_usd": 0.0,
+    "latency_ms": 0,
+    "created_at": "2026-11-10T12:07:17Z"
+  }
+]

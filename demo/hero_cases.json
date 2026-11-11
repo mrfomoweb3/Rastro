@@ -1,0 +1,45 @@
+{
+  "_note": "SYNTHETIC. Screen owner: rewrite the stories freely; keep the account number 0123456789 and the field names. gen_seed.py uses hero_seed_stories for 5 of the 39 N-007 cases; live_case is the script typed during the demo.",
+  "hero_seed_stories": [
+    {
+      "scam_type": "investment",
+      "channel": "whatsapp",
+      "narrative": "A woman on a crypto WhatsApp group said she could double my savings in two weeks. She showed screenshots of other members getting paid. I sent the money to a Demo Bank account she said belonged to the trading desk. After that the group admin removed me.",
+      "scam_messages": ["Pay into Demo Bank 0123456789, name on account is the desk manager. Profit lands in 14 days.", "Hurry, only 3 slots left for this cycle."]
+    },
+    {
+      "scam_type": "impersonation",
+      "channel": "phone",
+      "narrative": "A man called saying he was from my bank's fraud unit. He knew my last four digits and said my account was compromised and I had to move my money to a safe account at Demo Bank while they fixed it. I did it while he was still on the line.",
+      "scam_messages": ["This is the security team. Move your balance to the protected account 0123456789 (Demo Bank) immediately."]
+    },
+    {
+      "scam_type": "investment",
+      "channel": "social",
+      "narrative": "I saw an Instagram page with a trader showing big profits. Their manager messaged me and said the minimum to join was a few hundred dollars. I paid to the account they gave me. When I asked to withdraw they asked for a release fee.",
+      "scam_messages": ["Your profit is ready. Pay the release fee to 0123456789 Demo Bank to unlock withdrawal."]
+    },
+    {
+      "scam_type": "impersonation",
+      "channel": "sms",
+      "narrative": "I got a text saying my BVN would be blocked unless I updated it. I called the number in the text and the agent said I needed to pay a verification deposit that would be refunded. I sent it to the Demo Bank account she gave me.",
+      "scam_messages": ["Dear customer, your BVN will be suspended today. Call our desk to avoid restriction.", "Send the refundable deposit to 0123456789 (Demo Bank) and share the receipt."]
+    },
+    {
+      "scam_type": "investment",
+      "channel": "whatsapp",
+      "narrative": "My cousin added me to a group about a forex robot. The coach said returns were guaranteed. I paid in for the starter plan. The dashboard showed profits but I could never withdraw, and now the coach does not reply.",
+      "scam_messages": ["Starter plan activation: transfer to Demo Bank 0123456789 and send proof here."]
+    }
+  ],
+  "live_case": {
+    "turns": [
+      "Someone called me pretending to be from my bank's fraud team and told me to move my money to a safe account.",
+      "I sent $2,400.",
+      "About 3 hours ago.",
+      "It was a phone call, then they texted me the details.",
+      "The account was Demo Bank 0123456789. They called from +234 803 555 0142.",
+      "Move your balance to the protected account 0123456789 now, stay on the line."
+    ]
+  }
+}

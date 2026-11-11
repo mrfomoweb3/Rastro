@@ -1,0 +1,945 @@
+{
+  "id": "N-007",
+  "case_ids": [
+    "C-0383",
+    "C-0386",
+    "C-0388",
+    "C-0390",
+    "C-0393",
+    "C-0394",
+    "C-0395",
+    "C-0396",
+    "C-0397",
+    "C-0401",
+    "C-0402",
+    "C-0403",
+    "C-0405",
+    "C-0407",
+    "C-0409",
+    "C-0411",
+    "C-0412",
+    "C-0413",
+    "C-0414",
+    "C-0416",
+    "C-0417",
+    "C-0418",
+    "C-0422",
+    "C-0423",
+    "C-0424",
+    "C-0425",
+    "C-0426",
+    "C-0428",
+    "C-0429",
+    "C-0430",
+    "C-0431",
+    "C-0433",
+    "C-0435",
+    "C-0441",
+    "C-0446",
+    "C-0460",
+    "C-0474",
+    "C-0479",
+    "C-0486",
+    "C-0500"
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "C-0383",
+        "type": "case",
+        "label": "C-0383",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0386",
+        "type": "case",
+        "label": "C-0386",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0388",
+        "type": "case",
+        "label": "C-0388",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0390",
+        "type": "case",
+        "label": "C-0390",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0393",
+        "type": "case",
+        "label": "C-0393",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0394",
+        "type": "case",
+        "label": "C-0394",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0395",
+        "type": "case",
+        "label": "C-0395",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0396",
+        "type": "case",
+        "label": "C-0396",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0397",
+        "type": "case",
+        "label": "C-0397",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0401",
+        "type": "case",
+        "label": "C-0401",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0402",
+        "type": "case",
+        "label": "C-0402",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0403",
+        "type": "case",
+        "label": "C-0403",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0405",
+        "type": "case",
+        "label": "C-0405",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0407",
+        "type": "case",
+        "label": "C-0407",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0409",
+        "type": "case",
+        "label": "C-0409",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0411",
+        "type": "case",
+        "label": "C-0411",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0412",
+        "type": "case",
+        "label": "C-0412",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0413",
+        "type": "case",
+        "label": "C-0413",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0414",
+        "type": "case",
+        "label": "C-0414",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0416",
+        "type": "case",
+        "label": "C-0416",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0417",
+        "type": "case",
+        "label": "C-0417",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0418",
+        "type": "case",
+        "label": "C-0418",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0422",
+        "type": "case",
+        "label": "C-0422",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0423",
+        "type": "case",
+        "label": "C-0423",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0424",
+        "type": "case",
+        "label": "C-0424",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0425",
+        "type": "case",
+        "label": "C-0425",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0426",
+        "type": "case",
+        "label": "C-0426",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0428",
+        "type": "case",
+        "label": "C-0428",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0429",
+        "type": "case",
+        "label": "C-0429",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0430",
+        "type": "case",
+        "label": "C-0430",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0431",
+        "type": "case",
+        "label": "C-0431",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0433",
+        "type": "case",
+        "label": "C-0433",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0435",
+        "type": "case",
+        "label": "C-0435",
+        "kind": null,
+        "tier": "P4"
+      },
+      {
+        "id": "C-0441",
+        "type": "case",
+        "label": "C-0441",
+        "kind": null,
+        "tier": "P3"
+      },
+      {
+        "id": "C-0446",
+        "type": "case",
+        "label": "C-0446",
+        "kind": null,
+        "tier": "P3"
+      },
+      {
+        "id": "C-0460",
+        "type": "case",
+        "label": "C-0460",
+        "kind": null,
+        "tier": "P3"
+      },
+      {
+        "id": "C-0474",
+        "type": "case",
+        "label": "C-0474",
+        "kind": null,
+        "tier": "P3"
+      },
+      {
+        "id": "C-0479",
+        "type": "case",
+        "label": "C-0479",
+        "kind": null,
+        "tier": "P3"
+      },
+      {
+        "id": "C-0486",
+        "type": "case",
+        "label": "C-0486",
+        "kind": null,
+        "tier": "P2"
+      },
+      {
+        "id": "C-0500",
+        "type": "case",
+        "label": "C-0500",
+        "kind": null,
+        "tier": "P1"
+      },
+      {
+        "id": "E-00711",
+        "type": "entity",
+        "label": "acct 0123456789",
+        "kind": "account",
+        "tier": null
+      },
+      {
+        "id": "E-00714",
+        "type": "entity",
+        "label": "daniel",
+        "kind": "name",
+        "tier": null
+      },
+      {
+        "id": "E-00717",
+        "type": "entity",
+        "label": "phone \u20260142",
+        "kind": "phone",
+        "tier": null
+      },
+      {
+        "id": "E-00718",
+        "type": "entity",
+        "label": "phone \u20260177",
+        "kind": "phone",
+        "tier": null
+      },
+      {
+        "id": "E-00722",
+        "type": "entity",
+        "label": "phone \u20260109",
+        "kind": "phone",
+        "tier": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "X-C-0383-E-00711",
+        "source": "C-0383",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0386-E-00711",
+        "source": "C-0386",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0388-E-00711",
+        "source": "C-0388",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0390-E-00711",
+        "source": "C-0390",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0393-E-00711",
+        "source": "C-0393",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0394-E-00711",
+        "source": "C-0394",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0395-E-00711",
+        "source": "C-0395",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0396-E-00711",
+        "source": "C-0396",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0397-E-00711",
+        "source": "C-0397",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0401-E-00711",
+        "source": "C-0401",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0402-E-00711",
+        "source": "C-0402",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0403-E-00711",
+        "source": "C-0403",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0405-E-00711",
+        "source": "C-0405",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0407-E-00711",
+        "source": "C-0407",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0409-E-00711",
+        "source": "C-0409",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0411-E-00711",
+        "source": "C-0411",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0412-E-00711",
+        "source": "C-0412",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0413-E-00711",
+        "source": "C-0413",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0414-E-00711",
+        "source": "C-0414",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0416-E-00711",
+        "source": "C-0416",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0417-E-00711",
+        "source": "C-0417",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0418-E-00711",
+        "source": "C-0418",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0422-E-00711",
+        "source": "C-0422",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0423-E-00711",
+        "source": "C-0423",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0424-E-00711",
+        "source": "C-0424",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0425-E-00711",
+        "source": "C-0425",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0426-E-00711",
+        "source": "C-0426",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0428-E-00711",
+        "source": "C-0428",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0429-E-00711",
+        "source": "C-0429",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0430-E-00711",
+        "source": "C-0430",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0431-E-00711",
+        "source": "C-0431",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0433-E-00711",
+        "source": "C-0433",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0435-E-00711",
+        "source": "C-0435",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0441-E-00711",
+        "source": "C-0441",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0446-E-00711",
+        "source": "C-0446",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0460-E-00711",
+        "source": "C-0460",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0474-E-00711",
+        "source": "C-0474",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0479-E-00711",
+        "source": "C-0479",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0486-E-00711",
+        "source": "C-0486",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0500-E-00711",
+        "source": "C-0500",
+        "target": "E-00711",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0386-E-00714",
+        "source": "C-0386",
+        "target": "E-00714",
+        "strength": "weak",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0396-E-00714",
+        "source": "C-0396",
+        "target": "E-00714",
+        "strength": "weak",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0397-E-00714",
+        "source": "C-0397",
+        "target": "E-00714",
+        "strength": "weak",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0416-E-00714",
+        "source": "C-0416",
+        "target": "E-00714",
+        "strength": "weak",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0424-E-00714",
+        "source": "C-0424",
+        "target": "E-00714",
+        "strength": "weak",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0460-E-00714",
+        "source": "C-0460",
+        "target": "E-00714",
+        "strength": "weak",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0390-E-00717",
+        "source": "C-0390",
+        "target": "E-00717",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0397-E-00717",
+        "source": "C-0397",
+        "target": "E-00717",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0409-E-00717",
+        "source": "C-0409",
+        "target": "E-00717",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0428-E-00717",
+        "source": "C-0428",
+        "target": "E-00717",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0435-E-00717",
+        "source": "C-0435",
+        "target": "E-00717",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0486-E-00717",
+        "source": "C-0486",
+        "target": "E-00717",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0500-E-00717",
+        "source": "C-0500",
+        "target": "E-00717",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0390-E-00718",
+        "source": "C-0390",
+        "target": "E-00718",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0403-E-00718",
+        "source": "C-0403",
+        "target": "E-00718",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0405-E-00718",
+        "source": "C-0405",
+        "target": "E-00718",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0426-E-00718",
+        "source": "C-0426",
+        "target": "E-00718",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0430-E-00718",
+        "source": "C-0430",
+        "target": "E-00718",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0441-E-00718",
+        "source": "C-0441",
+        "target": "E-00718",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0396-E-00722",
+        "source": "C-0396",
+        "target": "E-00722",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0402-E-00722",
+        "source": "C-0402",
+        "target": "E-00722",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0413-E-00722",
+        "source": "C-0413",
+        "target": "E-00722",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0426-E-00722",
+        "source": "C-0426",
+        "target": "E-00722",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0433-E-00722",
+        "source": "C-0433",
+        "target": "E-00722",
+        "strength": "strong",
+        "similarity": 1.0
+      },
+      {
+        "id": "X-C-0479-E-00722",
+        "source": "C-0479",
+        "target": "E-00722",
+        "strength": "strong",
+        "similarity": 1.0
+      }
+    ]
+  },
+  "metrics": {
+    "case_count": 40,
+    "victim_count": 40,
+    "total_loss": 43780.02,
+    "first_seen": "2026-10-31T14:46:55Z",
+    "last_seen": "2026-11-10T09:07:16Z",
+    "cases_last_7d": 7
+  },
+  "typology": {
+    "label": "mule_network",
+    "confidence": 0.95
+  },
+  "priority": {
+    "tier": "P1",
+    "score": 385.5,
+    "rank": 1,
+    "rule_ids": [
+      "R2",
+      "R3"
+    ],
+    "reasons": [
+      "One receiving account is linked to 40 different victims.",
+      "Contains 1 P1 case(s) with the freeze window open; raised P2\u2192P1."
+    ]
+  },
+  "brief": {
+    "summary": "40 reports from 40 victims with a combined loss of $43,780.02, 7 of them in the last 7 days. The reports are tied together by shared payment and contact details, not by names. Pattern looks like mule network; rated P1 under R2, R3. 1 report(s) are inside the 24-hour window where a bank hold may still be possible.",
+    "why_linked": [
+      {
+        "claim": "40 reports paid into the same receiving account (acct 0123456789).",
+        "edge_ids": [
+          "X-C-0383-E-00711",
+          "X-C-0386-E-00711",
+          "X-C-0388-E-00711",
+          "X-C-0390-E-00711",
+          "X-C-0393-E-00711",
+          "X-C-0394-E-00711",
+          "X-C-0395-E-00711",
+          "X-C-0396-E-00711",
+          "X-C-0397-E-00711",
+          "X-C-0401-E-00711",
+          "X-C-0402-E-00711",
+          "X-C-0403-E-00711",
+          "X-C-0405-E-00711",
+          "X-C-0407-E-00711",
+          "X-C-0409-E-00711",
+          "X-C-0411-E-00711",
+          "X-C-0412-E-00711",
+          "X-C-0413-E-00711",
+          "X-C-0414-E-00711",
+          "X-C-0416-E-00711",
+          "X-C-0417-E-00711",
+          "X-C-0418-E-00711",
+          "X-C-0422-E-00711",
+          "X-C-0423-E-00711",
+          "X-C-0424-E-00711",
+          "X-C-0425-E-00711",
+          "X-C-0426-E-00711",
+          "X-C-0428-E-00711",
+          "X-C-0429-E-00711",
+          "X-C-0430-E-00711",
+          "X-C-0431-E-00711",
+          "X-C-0433-E-00711",
+          "X-C-0435-E-00711",
+          "X-C-0441-E-00711",
+          "X-C-0446-E-00711",
+          "X-C-0460-E-00711",
+          "X-C-0474-E-00711",
+          "X-C-0479-E-00711",
+          "X-C-0486-E-00711",
+          "X-C-0500-E-00711"
+        ]
+      },
+      {
+        "claim": "7 reports were contacted from the same phone number (phone \u20260142).",
+        "edge_ids": [
+          "X-C-0390-E-00717",
+          "X-C-0397-E-00717",
+          "X-C-0409-E-00717",
+          "X-C-0428-E-00717",
+          "X-C-0435-E-00717",
+          "X-C-0486-E-00717",
+          "X-C-0500-E-00717"
+        ]
+      },
+      {
+        "claim": "6 reports were contacted from the same phone number (phone \u20260177).",
+        "edge_ids": [
+          "X-C-0390-E-00718",
+          "X-C-0403-E-00718",
+          "X-C-0405-E-00718",
+          "X-C-0426-E-00718",
+          "X-C-0430-E-00718",
+          "X-C-0441-E-00718"
+        ]
+      },
+      {
+        "claim": "6 reports were contacted from the same phone number (phone \u20260109).",
+        "edge_ids": [
+          "X-C-0396-E-00722",
+          "X-C-0402-E-00722",
+          "X-C-0413-E-00722",
+          "X-C-0426-E-00722",
+          "X-C-0433-E-00722",
+          "X-C-0479-E-00722"
+        ]
+      }
+    ],
+    "gaps": [
+      "Account-holder identity behind the shared details is not known to Rastro.",
+      "No confirmation yet from the receiving bank on the account's other inflows.",
+      "Name look-alikes are shown as weak links only and were not used to join reports."
+    ],
+    "next_steps": [
+      "Contact the receiving bank about the newest reports first, while a hold may still be possible.",
+      "Ask the receiving bank to review the shared account under its own procedures.",
+      "Request subscriber and usage records for the shared phone numbers through the usual channel.",
+      "Open the evidence packets of the most recent reports and confirm the details with the victims."
+    ],
+    "checked": true,
+    "check_notes": []
+  },
+  "status": "ok",
+  "updated_at": "2026-11-10T12:07:17Z"
+}

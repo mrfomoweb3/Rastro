@@ -1,0 +1,20 @@
+{
+  "session_id": "S-9a6073513371",
+  "reply": "Hi, I'm Rastro. I'll turn what happened into an evidence packet your bank can act on. I'm sorry this happened. In your own words, what happened?",
+  "draft": {
+    "source": "live",
+    "narrative": "",
+    "scam_messages": [],
+    "flags": [],
+    "entities": []
+  },
+  "missing_fields": [
+    "amount",
+    "paid_at",
+    "channel",
+    "receiving account"
+  ],
+  "done": false,
+  "case_id": null,
+  "flagged": false
+}

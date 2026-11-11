@@ -1,0 +1,39 @@
+{
+  "session_id": "S-9a6073513371",
+  "reply": "Thank you. Your report is C-0500. I'm checking it against earlier reports and preparing your evidence packet now \u2014 it takes under a minute. Rastro does not freeze money itself; your bank decides what to do with the packet.",
+  "draft": {
+    "source": "live",
+    "narrative": "Someone called me pretending to be from my bank's fraud team and told me to move my money to a safe account. I sent $2,400. About 3 hours ago. It was a phone call, then they texted me the details. The account was Demo Bank 0123456789. They called from +234 803 555 0142.",
+    "scam_messages": [
+      "Move your balance to the protected account 0123456789 now, stay on the line."
+    ],
+    "flags": [],
+    "entities": [
+      {
+        "id": "draft-1",
+        "kind": "account",
+        "value": "0123456789",
+        "normalized": "0123456789",
+        "case_ids": []
+      },
+      {
+        "id": "draft-2",
+        "kind": "phone",
+        "value": "+234 803 555 0142",
+        "normalized": "08035550142",
+        "case_ids": []
+      }
+    ],
+    "amount": 2400.0,
+    "paid_at": "2026-11-10T09:07:16Z",
+    "channel": "phone",
+    "scam_type": {
+      "label": "impersonation",
+      "confidence": 0.9
+    }
+  },
+  "missing_fields": [],
+  "done": true,
+  "case_id": "C-0500",
+  "flagged": false
+}

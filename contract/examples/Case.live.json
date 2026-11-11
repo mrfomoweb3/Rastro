@@ -1,0 +1,91 @@
+{
+  "id": "C-0500",
+  "source": "live",
+  "reported_at": "2026-11-10T12:07:17Z",
+  "paid_at": "2026-11-10T09:07:16Z",
+  "amount": 2400.0,
+  "channel": "phone",
+  "victim_alias": "Victim 9173",
+  "narrative": "Someone called me pretending to be from my bank's fraud team and told me to move my money to a safe account. I sent $2,400. About 3 hours ago. It was a phone call, then they texted me the details. The account was Demo Bank 0123456789. They called from +234 803 555 0142.",
+  "scam_messages": [
+    "Move your balance to the protected account 0123456789 now, stay on the line."
+  ],
+  "entities": [
+    {
+      "id": "E-00711",
+      "kind": "account",
+      "value": "0123456789",
+      "normalized": "0123456789",
+      "case_ids": [
+        "C-0383",
+        "C-0386",
+        "C-0388",
+        "C-0390",
+        "C-0393",
+        "C-0394",
+        "C-0395",
+        "C-0396",
+        "C-0397",
+        "C-0401",
+        "C-0402",
+        "C-0403",
+        "C-0405",
+        "C-0407",
+        "C-0409",
+        "C-0411",
+        "C-0412",
+        "C-0413",
+        "C-0414",
+        "C-0416",
+        "C-0417",
+        "C-0418",
+        "C-0422",
+        "C-0423",
+        "C-0424",
+        "C-0425",
+        "C-0426",
+        "C-0428",
+        "C-0429",
+        "C-0430",
+        "C-0431",
+        "C-0433",
+        "C-0435",
+        "C-0441",
+        "C-0446",
+        "C-0460",
+        "C-0474",
+        "C-0479",
+        "C-0486",
+        "C-0500"
+      ]
+    },
+    {
+      "id": "E-00717",
+      "kind": "phone",
+      "value": "+234 803 555 0142",
+      "normalized": "08035550142",
+      "case_ids": [
+        "C-0390",
+        "C-0397",
+        "C-0409",
+        "C-0428",
+        "C-0435",
+        "C-0486",
+        "C-0500"
+      ]
+    }
+  ],
+  "urgency": {
+    "tier": "P1",
+    "hours_since_payment": 3.0,
+    "rule_id": "U1"
+  },
+  "scam_type": {
+    "label": "impersonation",
+    "confidence": 0.9
+  },
+  "status": "linked",
+  "flags": [],
+  "network_id": "N-007",
+  "packet_url": "/cases/C-0500/packet.pdf"
+}

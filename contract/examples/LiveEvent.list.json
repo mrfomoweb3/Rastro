@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "type": "case_created",
+    "object_id": "C-0500",
+    "message": "New report C-0500: $2,400 via phone",
+    "at": "2026-11-10T12:07:17Z"
+  },
+  {
+    "id": 2,
+    "type": "case_linked",
+    "object_id": "C-0500",
+    "message": "C-0500 linked to N-007 via account 0123456789, phone 08035550142",
+    "at": "2026-11-10T12:07:17Z"
+  },
+  {
+    "id": 3,
+    "type": "brief_updated",
+    "object_id": "N-007",
+    "message": "Brief for N-007 updated (checked)",
+    "at": "2026-11-10T12:07:17Z"
+  },
+  {
+    "id": 4,
+    "type": "network_reranked",
+    "object_id": "N-007",
+    "message": "N-007 moved #6 \u2192 #1",
+    "at": "2026-11-10T12:07:17Z"
+  }
+]

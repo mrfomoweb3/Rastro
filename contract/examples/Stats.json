@@ -1,0 +1,9 @@
+{
+  "cases_total": 500,
+  "networks_total": 21,
+  "needs_review": 2,
+  "total_cost_usd": 0.0,
+  "avg_cost_per_case_usd": 0.0,
+  "avg_seconds_report_to_packet": 0.35,
+  "analyst_hours_saved": 393.0
+}

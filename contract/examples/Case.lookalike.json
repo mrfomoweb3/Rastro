@@ -1,0 +1,49 @@
+{
+  "id": "C-0300",
+  "source": "seed",
+  "reported_at": "2026-10-02T20:53:47Z",
+  "paid_at": "2026-10-02T14:45:33Z",
+  "amount": 2535.78,
+  "channel": "social",
+  "victim_alias": "Victim 9108",
+  "narrative": "A trader I followed offered to manage my money for a share of profit. They asked me to transfer $2,536 to start and showed fake profits. The number is switched off now. The account manager called himself John Okafor.",
+  "scam_messages": [
+    "Only a few slots left this cycle, hurry.",
+    "Your profit is ready, pay the release fee."
+  ],
+  "entities": [
+    {
+      "id": "E-00571",
+      "kind": "account",
+      "value": "3341530650",
+      "normalized": "3341530650",
+      "case_ids": [
+        "C-0300"
+      ]
+    },
+    {
+      "id": "E-00572",
+      "kind": "name",
+      "value": "John Okafor",
+      "normalized": "john okafor",
+      "case_ids": [
+        "C-0300"
+      ]
+    }
+  ],
+  "urgency": {
+    "tier": "P4",
+    "hours_since_payment": 933.4,
+    "rule_id": "U4"
+  },
+  "scam_type": {
+    "label": "investment",
+    "confidence": 0.84
+  },
+  "status": "standalone",
+  "flags": [
+    "name_lookalike:C-0301"
+  ],
+  "network_id": null,
+  "packet_url": "/cases/C-0300/packet.pdf"
+}
