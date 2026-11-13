@@ -17,7 +17,7 @@ export function HeroFact() {
   const s = useStats();
   if (!s) return <p className="h-5 font-mono text-[13px] text-faint">&nbsp;</p>;
   return (
-    <p className="font-mono text-[13px] text-muted">
+    <p className="font-mono text-[12px] text-fg/70 sm:text-[13px]">
       <span className="text-fg">{s.cases_total}</span> reports linked into <span className="text-fg">{s.networks_total}</span> networks. All data is synthetic.
     </p>
   );

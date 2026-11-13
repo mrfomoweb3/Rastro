@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GraphEdge, GraphNode, Network } from "@/lib/contract";
 
 const W = 760;
@@ -60,6 +60,25 @@ function layout(nodes: GraphNode[], edges: GraphEdge[]): Record<string, Pos> {
   );
 }
 
+/** Seconds since mount, ticked ~30 times a second, so nodes drift and pulses travel. Stays 0 with reduced motion. */
+function useClock() {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0, last = 0;
+    const t0 = performance.now();
+    const loop = (now: number) => {
+      if (now - last > 33 && !document.hidden) { last = now; setT((now - t0) / 1000); }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return t;
+}
+
+const phaseOf = (id: string) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 628; return h / 100; };
+
 const kindLabel: Record<string, string> = {
   account: "Account", phone: "Phone", url: "Link", email: "Email", wallet: "Wallet", name: "Name",
 };
@@ -68,7 +87,25 @@ export function NetworkGraph({
   network, highlightEdges, newCaseIds = [],
 }: { network: Network; highlightEdges: string[]; newCaseIds?: string[] }) {
   const { nodes, edges } = network.graph;
-  const pos = useMemo(() => layout(nodes, edges), [nodes, edges]);
+  const base = useMemo(() => layout(nodes, edges), [nodes, edges]);
+  const clock = useClock();
+  // On a phone the 760-wide drawing is shrunk a lot, so grow labels and dots to stay readable.
+  const wrap = useRef<HTMLDivElement>(null);
+  const [k, setK] = useState(1);
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setK(Math.min(2.4, Math.max(1, 560 / Math.max(e.contentRect.width, 1)))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const phases = useMemo(() => Object.fromEntries(nodes.map((nd) => [nd.id, phaseOf(nd.id)])), [nodes]);
+  // Gentle drift: every node floats a few pixels around its resting place.
+  const pos = useMemo(() => Object.fromEntries(nodes.map((nd) => {
+    const b = base[nd.id]; const ph = phases[nd.id]; const amp = nd.type === "entity" ? 2.5 : 4;
+    return [nd.id, b ? { x: b.x + Math.sin(clock * 0.9 + ph) * amp, y: b.y + Math.cos(clock * 0.7 + ph * 1.3) * amp } : b];
+  })), [nodes, base, phases, clock]);
+  const nodeType = useMemo(() => new Map(nodes.map((nd) => [nd.id, nd.type])), [nodes]);
   const [hoverId, setHover] = useState<string | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
   const hover = pinned ?? hoverId;
@@ -84,7 +121,7 @@ export function NetworkGraph({
   const hoverNode = hover ? nodes.find((nd) => nd.id === hover) : null;
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={wrap} className="relative h-full w-full">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" onClick={() => setPinned(null)}
         aria-label={`Link graph for ${network.id}: ${nodes.length} nodes and ${edges.length} links`}>
         <g>
@@ -97,10 +134,27 @@ export function NetworkGraph({
               <line key={e.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                 stroke={hasHl && hl.has(e.id) ? "var(--accent)" : weak ? "var(--faint)" : "var(--accent)"}
                 strokeWidth={hasHl && hl.has(e.id) ? 1.8 : 1}
-                strokeDasharray={weak ? "4 4" : undefined}
+                strokeDasharray={weak ? "4 4" : hasHl && hl.has(e.id) ? "6 6" : undefined}
+                className={hasHl && hl.has(e.id) ? "flow" : undefined}
                 opacity={on ? (hasHl || hoverEdges ? 0.95 : 0.3) : 0.06}
                 style={{ transition: "opacity .2s" }} />
             );
+          })}
+        </g>
+        {/* Reports sending their shared detail to the account or phone: a dot travels along each strong link */}
+        <g pointerEvents="none">
+          {edges.map((e, i) => {
+            if (e.strength === "weak") return null;
+            const on = hasHl ? hl.has(e.id) : hoverEdges ? hoverEdges.has(e.id) : i % 2 === 0;
+            if (!on) return null;
+            let a = pos[e.source], b = pos[e.target];
+            if (!a || !b) return null;
+            if (nodeType.get(e.source) === "entity") [a, b] = [b, a]; // always report -> entity
+            const speed = hasHl ? 0.55 : 0.28;
+            const f = (clock * speed + (phaseOf(e.id) / 6.28)) % 1;
+            const x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f;
+            const fade = Math.sin(f * Math.PI);
+            return <circle key={e.id} cx={x} cy={y} r={hasHl ? 3.2 : 2.2} fill="var(--accent)" opacity={fade * (hasHl ? 0.95 : 0.55)} />;
           })}
         </g>
         <g>
@@ -117,10 +171,10 @@ export function NetworkGraph({
                 onClick={(e) => { e.stopPropagation(); setPinned((p) => (p === nd.id ? null : nd.id)); }}>
                 {isNew && <circle r="14" fill="none" stroke="var(--p1)" strokeOpacity=".6" className="live-dot" />}
                 {isEntity ? (
-                  <rect x={-8} y={-8} width={16} height={16} rx={4}
+                  <rect x={-8 * Math.min(k, 1.6)} y={-8 * Math.min(k, 1.6)} width={16 * Math.min(k, 1.6)} height={16 * Math.min(k, 1.6)} rx={4}
                     fill={nd.kind === "account" ? "var(--accent)" : "var(--p2)"} />
                 ) : (
-                  <circle r={isNew ? 6 : 4.5}
+                  <circle r={(isNew ? 6 : 4.5) * Math.min(k, 1.6)}
                     fill={isNew ? "var(--p1)" : "var(--fg)"} fillOpacity={isNew ? 1 : 0.85} />
                 )}
                 <title>{nd.label}</title>
@@ -133,7 +187,7 @@ export function NetworkGraph({
             const p = pos[nd.id];
             if (!p) return null;
             return (
-              <text key={nd.id} x={p.x} y={p.y + 22} textAnchor="middle" fontSize="11"
+              <text key={nd.id} x={p.x} y={p.y + 22 * Math.min(k, 1.6)} textAnchor="middle" fontSize={11 * k}
                 fontFamily="var(--font-geist-mono), monospace" fill="var(--muted)">
                 {nd.label.length > 22 ? nd.label.slice(0, 21) + "…" : nd.label}
               </text>

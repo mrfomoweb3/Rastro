@@ -51,6 +51,7 @@ export function ConsoleApp() {
   const [selId, setSelId] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<string[]>([]);
   const [claimIdx, setClaimIdx] = useState<number | null>(null);
+  const [autoPlay, setAutoPlay] = useState(true);
   const [cases, setCases] = useState<Case[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [tab, setTab] = useState<"activity" | "reports">("activity");
@@ -116,6 +117,17 @@ export function ConsoleApp() {
   }, [refresh, refreshCases]);
 
   const sel = useMemo(() => nets?.find((n) => n.id === selId) ?? null, [nets, selId]);
+
+  // Auto-play: step through the reasons so the graph shows each shared detail lighting up.
+  const claims = sel?.brief?.why_linked;
+  useEffect(() => {
+    if (!autoPlay || !claims?.length) return;
+    let i = 0;
+    const show = () => { setClaimIdx(i); setHighlight(claims[i].edge_ids); i = (i + 1) % claims.length; };
+    show();
+    const t = setInterval(show, 3400);
+    return () => clearInterval(t);
+  }, [autoPlay, claims, selId]);
   const netCases = useMemo(() => {
     if (!sel) return [];
     const ids = new Set(sel.case_ids);
@@ -297,7 +309,8 @@ export function ConsoleApp() {
 
         {/* Brief */}
         <aside className="min-h-0 overflow-y-auto border-t border-line p-5 lg:border-l lg:border-t-0">
-          {sel && <BriefPanel net={sel} claimIdx={claimIdx} onClaim={(i, ids) => { const same = claimIdx === i; setClaimIdx(same ? null : i); setHighlight(same ? [] : ids); }} onMake={makeBrief} busy={briefBusy} />}
+          {sel && <BriefPanel net={sel} claimIdx={claimIdx} autoPlay={autoPlay} onToggleAuto={() => { setAutoPlay((a) => { if (!a) { setClaimIdx(null); setHighlight([]); } return !a; }); }}
+            onClaim={(i, ids) => { setAutoPlay(false); const same = claimIdx === i; setClaimIdx(same ? null : i); setHighlight(same ? [] : ids); }} onMake={makeBrief} busy={briefBusy} />}
         </aside>
       </div>
 
@@ -347,9 +360,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function BriefPanel({
-  net, claimIdx, onClaim, onMake, busy,
+  net, claimIdx, onClaim, onMake, busy, autoPlay, onToggleAuto,
 }: {
-  net: Network; claimIdx: number | null;
+  net: Network; claimIdx: number | null; autoPlay: boolean; onToggleAuto: () => void;
   onClaim: (i: number, edgeIds: string[]) => void; onMake: () => void; busy: boolean;
 }) {
   const b = net.brief;
@@ -382,19 +395,26 @@ function BriefPanel({
           <p className="text-[14px] leading-relaxed text-fg/90">{b.summary}</p>
 
           <div>
-            <h3 className="text-xs font-semibold text-muted">Why these reports are linked</h3>
-            <p className="mt-0.5 text-xs text-faint">Select a reason to light up its links in the graph.</p>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-muted">Why these reports are linked</h3>
+              <button onClick={onToggleAuto} className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-[11px] text-muted hover:text-fg">
+                <span className={`size-1.5 rounded-full ${autoPlay ? "live-dot bg-accent" : "bg-faint"}`} />
+                {autoPlay ? "Playing" : "Play"}
+              </button>
+            </div>
+            <p className="mt-0.5 text-xs text-faint">Each reason lights up its links in the graph. Select one to stop on it.</p>
             <ul className="mt-2 flex flex-col gap-2">
               {b.why_linked.map((c, i) => (
-                <li key={i}>
+                <motion.li key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
                   <button onClick={() => onClaim(i, c.edge_ids)} aria-pressed={claimIdx === i}
                     className={`w-full rounded-xl border px-3 py-2.5 text-left text-[13px] leading-snug transition-colors ${
                       claimIdx === i ? "border-accent bg-accent/10" : "border-line bg-bg-raised hover:border-line-strong"
                     }`}>
                     {c.claim}
                     <span className="mt-1 block font-mono text-[11px] text-faint">{c.edge_ids.length} link{c.edge_ids.length === 1 ? "" : "s"}</span>
+                    {claimIdx === i && <ShareStrip n={c.edge_ids.length} />}
                   </button>
-                </li>
+                </motion.li>
               ))}
             </ul>
           </div>
@@ -421,6 +441,20 @@ function BriefPanel({
         </>
       )}
     </div>
+  );
+}
+
+/** Reports, drawn as dots, sliding along a line into the shared account or phone. */
+function ShareStrip({ n }: { n: number }) {
+  const dots = Math.min(5, Math.max(2, n));
+  return (
+    <span aria-hidden="true" className="relative mt-2 block h-4 overflow-hidden">
+      <span className="absolute inset-x-0 top-1/2 border-t border-dashed border-accent/40" />
+      {Array.from({ length: dots }).map((_, k) => (
+        <i key={k} className="share-dot absolute top-1/2 size-1.5 rounded-full bg-accent" style={{ animationDelay: `${(k * 1.4) / dots}s` }} />
+      ))}
+      <i className="absolute right-0 top-1/2 size-3 -translate-y-1/2 rounded-[3px] bg-accent" />
+    </span>
   );
 }
 

@@ -22,7 +22,17 @@ def baked():
     from scripts import gen_seed, prebake
     if not (ENGINE / "data" / "seed_cases.json").exists():
         gen_seed.main()
-    prebake.main()
+    committed = ENGINE / "data" / "prebaked.json"
+    if committed.exists():
+        # prebake.main() ranks against the real clock, but seed dates are fixed, so a fresh
+        # bake drifts as days pass. Restore the committed snapshot (shifted to now) instead.
+        import shutil
+        from app.main import restore_snapshot
+        shutil.copy(committed, os.environ["RASTRO_SNAPSHOT"])
+        db.init()
+        assert restore_snapshot()
+    else:
+        prebake.main()
     return db
 
 

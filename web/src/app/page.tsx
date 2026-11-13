@@ -1,11 +1,12 @@
 import { FileText, Link2, ListOrdered, ScrollText, Target, Search, UserCheck } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { PillLink } from "@/components/Pill";
-import { HeroFact, StatsRow } from "@/components/StatsRow";
+import { StatsRow } from "@/components/StatsRow";
 import { ProductWindow } from "@/components/ProductWindow";
 import { MiniBrief, MiniChat, MiniGraph } from "@/components/MiniCards";
 import { Faq } from "@/components/Faq";
 import { Logo } from "@/components/Logo";
+import { NeonHead } from "@/components/NeonHead";
 
 const features = [
   { icon: FileText, title: "Builds the evidence packet", body: "A PDF for the victim's bank, ready in under a second." },
@@ -42,23 +43,25 @@ export default function Home() {
         {/* Hero */}
         <section className="relative overflow-hidden">
           <div className="grid-bg pointer-events-none absolute inset-0" aria-hidden="true" />
-          <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-16 md:pt-24">
-            <div className="enter mx-auto flex max-w-3xl flex-col items-center text-center">
+          <NeonHead className="[mask-image:linear-gradient(to_bottom,#000_62%,transparent_100%)]" />
+          <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-12 md:pb-20 md:pt-24">
+            <div className="enter relative mx-auto flex max-w-3xl flex-col items-center text-center">
+              {/* Soft white veil so the copy stays crisp over the glow */}
+              <div className="pointer-events-none absolute -inset-x-4 -inset-y-6 -z-10 rounded-[48px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,.62)_30%,rgba(255,255,255,.4)_60%,transparent_80%)] sm:-inset-x-10" aria-hidden="true" />
               <a href="#how" className="mb-7 inline-flex items-center gap-2 rounded-full border border-line-strong bg-bg px-3.5 py-1.5 text-[13px] text-muted hover:text-fg">
                 <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-on-accent">New</span>
                 Built on SERV Reasoning
               </a>
-              <h1 className="text-balance text-5xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-7xl">
+              <h1 className="text-balance text-[2.6rem] font-semibold leading-[1.04] tracking-[-0.04em] [text-shadow:0_0_14px_#fff] sm:text-5xl md:text-7xl">
                 Scam report triage for bank fraud teams
               </h1>
-              <p className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted md:text-xl">
+              <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-fg/75 [text-shadow:0_0_10px_#fff,0_0_22px_#fff] sm:text-lg md:text-xl">
                 Victims report a scam in a short chat. Rastro builds the evidence packet, links it to earlier reports that share an account or phone, and ranks which network to act on first.
               </p>
-              <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <div className="mt-8 flex flex-wrap justify-center gap-3 md:mt-9">
                 <PillLink href="/console?demo=1" className="!px-6 !py-3">Try the live demo</PillLink>
                 <PillLink href="/report" variant="outline" className="!px-6 !py-3">Report a scam</PillLink>
               </div>
-              <div className="mt-8"><HeroFact /></div>
             </div>
             <div className="enter mx-auto mt-14 max-w-5xl [animation-delay:150ms]">
               <ProductWindow />
