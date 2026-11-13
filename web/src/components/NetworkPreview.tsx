@@ -18,7 +18,7 @@ export function NetworkPreview() {
   const lead = top[0];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line-strong bg-bg-raised shadow-[0_40px_120px_-40px_rgba(91,130,255,.25)]">
+    <div className="overflow-hidden rounded-2xl border border-line-strong bg-bg-raised shadow-[0_30px_80px_-30px_rgba(42,86,240,.35)]">
       <div className="flex items-center justify-between border-b border-line px-4 py-3 font-mono text-xs text-muted">
         <span className="text-fg">Networks, ranked by priority</span>
         <span>{nets ? `${nets.length} networks` : "loading"}</span>

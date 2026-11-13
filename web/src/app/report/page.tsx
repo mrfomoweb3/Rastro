@@ -6,7 +6,7 @@ export const metadata = { title: "Report a scam | Rastro" };
 
 export default function ReportPage() {
   return (
-    <div className="light flex min-h-screen flex-col bg-bg text-fg">
+    <div className="flex min-h-screen flex-col bg-bg text-fg">
       <header className="border-b border-line">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
           <Link href="/" aria-label="Rastro home"><Logo className="text-[17px]" /></Link>

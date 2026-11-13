@@ -32,9 +32,9 @@ export function StatsRow() {
     { v: s?.analyst_hours_saved ?? 0, label: "analyst hours saved (estimate)", decimals: 0, suffix: "" },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-accent-mid/70 md:grid-cols-4">
       {items.map((i) => (
-        <div key={i.label} className="flex flex-col gap-2 bg-bg px-6 py-8">
+        <div key={i.label} className="flex flex-col gap-2 bg-bg/70 px-6 py-9">
           <dt className="order-2 text-sm text-muted">{i.label}</dt>
           <dd className="order-1 text-4xl font-semibold tracking-tight tabular md:text-5xl">
             <AnimatedNumber value={i.v} decimals={i.decimals} />

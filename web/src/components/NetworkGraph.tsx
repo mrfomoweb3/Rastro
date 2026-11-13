@@ -69,7 +69,9 @@ export function NetworkGraph({
 }: { network: Network; highlightEdges: string[]; newCaseIds?: string[] }) {
   const { nodes, edges } = network.graph;
   const pos = useMemo(() => layout(nodes, edges), [nodes, edges]);
-  const [hover, setHover] = useState<string | null>(null);
+  const [hoverId, setHover] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<string | null>(null);
+  const hover = pinned ?? hoverId;
 
   const hl = new Set(highlightEdges);
   const hasHl = hl.size > 0;
@@ -83,7 +85,7 @@ export function NetworkGraph({
 
   return (
     <div className="relative h-full w-full">
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img"
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" onClick={() => setPinned(null)}
         aria-label={`Link graph for ${network.id}: ${nodes.length} nodes and ${edges.length} links`}>
         <g>
           {edges.map((e) => {
@@ -111,7 +113,8 @@ export function NetworkGraph({
             return (
               <g key={nd.id} transform={`translate(${p.x},${p.y})`} opacity={dim ? 0.2 : 1}
                 style={{ transition: "opacity .2s", cursor: "pointer" }}
-                onMouseEnter={() => setHover(nd.id)} onMouseLeave={() => setHover(null)}>
+                onMouseEnter={() => setHover(nd.id)} onMouseLeave={() => setHover(null)}
+                onClick={(e) => { e.stopPropagation(); setPinned((p) => (p === nd.id ? null : nd.id)); }}>
                 {isNew && <circle r="14" fill="none" stroke="var(--p1)" strokeOpacity=".6" className="live-dot" />}
                 {isEntity ? (
                   <rect x={-8} y={-8} width={16} height={16} rx={4}
@@ -143,6 +146,7 @@ export function NetworkGraph({
         <span className="flex items-center gap-1.5"><i className="inline-block size-2.5 rounded-[3px] bg-p2" /> Phone or link</span>
         <span className="flex items-center gap-1.5"><i className="inline-block size-2 rounded-full bg-fg/85" /> Report</span>
         <span className="flex items-center gap-1.5"><i className="inline-block w-4 border-t border-dashed border-faint" /> Name look-alike only</span>
+        <span className="text-faint">Click a node to pin it</span>
       </div>
       {hoverNode && (
         <div className="pointer-events-none absolute right-3 top-3 max-w-[240px] rounded-lg border border-line-strong bg-bg-raised px-3 py-2 text-xs">

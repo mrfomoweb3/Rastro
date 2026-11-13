@@ -4,38 +4,20 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Dark is the default surface: black, white, one blue accent. */
-  --bg: #07080a;
-  --bg-raised: #0e1013;
-  --bg-sunk: #0b0c0f;
-  --fg: #f4f5f7;
-  --muted: #9a9ea8;
-  --faint: #5d616b;
-  --line: #1f2127;
-  --line-strong: #2d3038;
-  --accent: #5b82ff;
-  --on-accent: #07080a;
-  /* Semantic colours, used only for priority and status */
-  --p1: #ff6459;
-  --p1-bg: #2a1513;
-  --p2: #f2b04a;
-  --p2-bg: #2a2010;
-  --good: #46d29d;
-  --good-bg: #0f2a21;
-}
-
-/* Calm surface for the victim report page */
-.light {
+  /* One palette: white surfaces, black text, one blue accent. No dark variant. */
   --bg: #ffffff;
-  --bg-raised: #f6f6f7;
-  --bg-sunk: #f0f0f2;
-  --fg: #0a0a0b;
-  --muted: #5b5e66;
-  --faint: #8d9098;
-  --line: #e6e7ea;
-  --line-strong: #d3d5da;
+  --bg-raised: #f6f7f9;
+  --bg-sunk: #eff1f4;
+  --fg: #0a0b0d;
+  --muted: #5a5f69;
+  --faint: #8b909a;
+  --line: #e7e9ee;
+  --line-strong: #d2d6de;
   --accent: #2a56f0;
+  --accent-soft: #e9efff;
+  --accent-mid: #cfdcff;
   --on-accent: #ffffff;
+  /* Semantic colours, used only for priority and status */
   --p1: #cf2e22;
   --p1-bg: #fdecea;
   --p2: #a96a00;
@@ -56,6 +38,8 @@
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-mid: var(--accent-mid);
   --color-on-accent: var(--on-accent);
   /* aliases so the easyui components pick up our palette */
   --color-foreground: var(--fg);
@@ -74,14 +58,13 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-html { color-scheme: dark; }
+html { color-scheme: light; }
 body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
-.light { color-scheme: light; background: var(--bg); color: var(--fg); }
 
 ::selection { background: var(--accent); color: var(--on-accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -91,8 +74,8 @@ body {
 /* Soft grid behind the hero */
 .grid-bg {
   background-image:
-    linear-gradient(to right, rgba(255,255,255,.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,.045) 1px, transparent 1px);
+    linear-gradient(to right, rgba(10,11,13,.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10,11,13,.055) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
 }

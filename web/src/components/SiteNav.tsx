@@ -10,6 +10,7 @@ export function SiteNav() {
         <div className="flex items-center gap-1 sm:gap-6 text-sm text-muted">
           <a href="/#how" className="hidden sm:inline hover:text-fg">How it works</a>
           <a href="/#numbers" className="hidden sm:inline hover:text-fg">Results</a>
+          <a href="/#faq" className="hidden md:inline hover:text-fg">FAQ</a>
           <Link href="/report" className="hidden sm:inline hover:text-fg">Report a scam</Link>
           <PillLink href="/console" className="!py-2">Open the console</PillLink>
         </div>

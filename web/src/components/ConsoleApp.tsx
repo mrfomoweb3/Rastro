@@ -203,7 +203,7 @@ export function ConsoleApp() {
   const demoRunning = ["reset", "chat", "link", "rank"].includes(demoStep);
 
   return (
-    <div className="dark flex min-h-screen flex-col bg-bg text-fg lg:h-screen lg:overflow-hidden">
+    <div className="flex min-h-screen flex-col bg-bg text-fg lg:h-screen lg:overflow-hidden">
       {/* Top bar */}
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line px-4">
         <Link href="/" aria-label="Rastro home"><Logo className="text-[16px]" /></Link>
@@ -286,7 +286,7 @@ export function ConsoleApp() {
                   <Metric label="Last 7 days" value={String(sel.metrics.cases_last_7d)} />
                 </dl>
               </div>
-              <div className="relative min-h-[300px] flex-1 bg-[radial-gradient(ellipse_at_center,rgba(91,130,255,.06),transparent_70%)]">
+              <div className="relative min-h-[300px] flex-1 bg-[radial-gradient(ellipse_at_center,rgba(42,86,240,.07),transparent_70%)]">
                 <NetworkGraph network={sel} highlightEdges={highlight} newCaseIds={newCaseIds.map((id) => id)} />
               </div>
             </>
@@ -302,7 +302,7 @@ export function ConsoleApp() {
       </div>
 
       {/* Bottom: agent activity and reports */}
-      <section className="h-[300px] shrink-0 border-t border-line">
+      <section className="h-[320px] shrink-0 border-t border-line bg-raised/40">
         <div className="flex h-11 items-center gap-1 border-b border-line px-3">
           {(["activity", "reports"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
@@ -314,7 +314,7 @@ export function ConsoleApp() {
             {tab === "activity" ? "Every step the pipeline took, and who did it: rules in code, SERV, or the shadow agent." : "Reports that belong to this network, newest first."}
           </span>
         </div>
-        <div className="h-[calc(300px-44px)] overflow-y-auto p-4">
+        <div className="h-[calc(320px-44px)] overflow-y-auto p-4">
           {tab === "activity" ? (
             activities.length ? (
               <AIAgentActivity activities={activities} title="Agent activity" agentName={sel ? `Rastro pipeline · ${sel.id}` : "Rastro pipeline"} isRunning={demoRunning} />
