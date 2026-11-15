@@ -127,7 +127,8 @@ def message(sid: str, text: str) -> dict | None:
     if serv.available():
         try:
             user = json.dumps({"draft": draft(s), "missing": missing(s)}) + "\n" + as_evidence([text])
-            out, meta = serv.call_json(serv.MODEL_PLAIN, INTAKE_SYSTEM, user, tools=[serv.PROMPT_GUARD])
+            out, meta = serv.call_json(serv.MODEL_PLAIN, INTAKE_SYSTEM, user, tools=[serv.PROMPT_GUARD],
+                                       timeout=serv.TIMEOUT_INTAKE)
             f = out.get("fields") or {}
             if not s["amount"] and isinstance(f.get("amount"), (int, float)) and f["amount"] > 0:
                 s["amount"] = float(f["amount"])
@@ -156,7 +157,7 @@ def message(sid: str, text: str) -> dict | None:
         s["done"] = True
         s["case_id"] = _create_case(s)
         reply = (f"Thank you. Your report is {s['case_id']}. I'm checking it against earlier reports and preparing "
-                 "your evidence packet now — it takes under a minute. Rastro does not freeze money itself; your bank "
+                 "your evidence packet now. It takes under a minute. Rastro does not freeze money itself; your bank "
                  "decides what to do with the packet.")
     s["turns"].append({"role": "agent", "text": reply})
     db.put_session(s)
@@ -172,8 +173,8 @@ def _alias() -> str:
 
 
 def _create_case(s: dict) -> str:
-    from graph.case_graph import run_case
     with db.LOCK:
+        epoch = db.EPOCH  # the data this report belongs to; a demo reset ends its run
         cid = db.next_case_id()
         text = " ".join(s["narrative"])
         case = {
@@ -192,17 +193,23 @@ def _create_case(s: dict) -> str:
           "victim messages.", ["C-required"])
     emit("case_created", cid, f"New report {cid}: ${case['amount']:,.0f} via {case['channel']}")
     raw = [dict(e) for e in s["entities"]]
-    threading.Thread(target=_run_safe, args=(case, raw), daemon=True).start()
+    threading.Thread(target=_run_safe, args=(case, raw, epoch), daemon=True).start()
     return cid
 
 
-def _run_safe(case, raw):
+def _run_safe(case, raw, epoch=None):
     from graph.case_graph import run_case
+    db.bind_epoch(epoch)
     try:
         run_case(case, raw)
+    except db.Stale:
+        return  # the demo data was reset while this report was being processed
     except Exception as e:  # noqa: BLE001
-        c = db.get_case(case["id"]) or case
-        c["status"] = "needs_review"
-        db.put_case(c)
-        audit("case", case["id"], "pipeline", "code", f"Pipeline error: {type(e).__name__}: {e}"[:300])
-        emit("needs_review", case["id"], f"{case['id']} needs review: pipeline error")
+        try:
+            c = db.get_case(case["id"]) or case
+            c["status"] = "needs_review"
+            db.put_case(c)
+            audit("case", case["id"], "pipeline", "code", f"Pipeline error: {type(e).__name__}: {e}"[:300])
+            emit("needs_review", case["id"], f"{case['id']} needs review: pipeline error")
+        except db.Stale:
+            return

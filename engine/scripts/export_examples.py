@@ -37,8 +37,9 @@ def main():
             if r["done"]:
                 break
         ex["IntakeReply.done"] = r
-        for _ in range(300):
-            if c.get(f"/cases/{r['case_id']}").json().get("packet_url"):
+        from app import db
+        for _ in range(900):  # packet first, then the network is re-ranked and briefed
+            if c.get(f"/cases/{r['case_id']}").json().get("packet_url") and db.get_case_meta(r["case_id"]).get("network_done"):
                 break
             time.sleep(0.2)
         ex["Case.live"] = c.get(f"/cases/{r['case_id']}").json()

@@ -1,13 +1,17 @@
 """LangGraph for one case run:
 
-guard → completeness → urgency → extract → link → networks(decide→brief→verify) → packet
+guard → completeness → urgency → extract → link → structure → packet → networks
              └─ missing → END (back to intake chat / needs_review)
+
+`structure` (code only) adds the report to its network at once. `packet` then marks the
+evidence packet ready, so the victim never waits for SERV. `networks` runs last, per
+network the report touched: decide → re-rank → brief → verify.
 """
 from __future__ import annotations
 
-import json
+import threading
 import time
-from typing import List, TypedDict
+from typing import Dict, List, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -29,6 +33,19 @@ class CaseState(TypedDict, total=False):
     missing: List[str]
     network_ids_touched: List[str]
     t0: float
+
+
+# One network update at a time. The lock belongs to a data epoch: after a demo reset a new
+# run gets a new lock and never waits behind a run that started on the old data.
+_NET_LOCKS: Dict[object, threading.Lock] = {}
+
+
+def _net_lock() -> threading.Lock:
+    key = db.bound_epoch()
+    with db.LOCK:
+        for k in [k for k in _NET_LOCKS if k != key]:
+            del _NET_LOCKS[k]
+        return _NET_LOCKS.setdefault(key, threading.Lock())
 
 
 # ---------------------------------------------------------------- nodes
@@ -93,19 +110,25 @@ def extract(s: CaseState) -> CaseState:
     found, meta = [], None
     if serv.available():
         try:
-            out, meta = serv.call_json(serv.MODEL_PLAIN, EXTRACT_SYSTEM, as_evidence(text), tools=[serv.PROMPT_GUARD])
-            found = [e for e in out.get("entities", []) if isinstance(e, dict)]
+            out, meta = serv.call_json(serv.MODEL_PLAIN, EXTRACT_SYSTEM, as_evidence(text), tools=[serv.PROMPT_GUARD],
+                                       timeout=serv.TIMEOUT_EXTRACT)
+            found = [e for e in (out.get("entities") or []) if isinstance(e, dict)]
             st = out.get("scam_type", "unknown")
             c["scam_type"] = {"label": st if st in ("investment", "impersonation", "romance", "phishing", "fake_job",
                                                     "purchase") else "unknown",
-                              "confidence": round(float(out.get("confidence", 0.5) or 0.5), 2)}
+                              "confidence": round(max(0.0, min(1.0, float(out.get("confidence", 0.5) or 0.5))), 2)}
+        except db.Stale:
+            raise
         except Exception as e:  # noqa: BLE001
+            found, meta = [], None
             audit("case", c["id"], "extract", "code", f"SERV extract failed ({type(e).__name__}); regex only.")
+    db.check_alive()
     if meta is None:
         c["scam_type"] = guess_scam_type(" ".join(text))
     # Injection defence: a model may only ADD entities that literally appear in the text.
     blob = " ".join(text).lower()
-    found = [e for e in found if str(e.get("value", "")).lower() in blob]
+    found = [e for e in found if str(e.get("value", "")).strip() and str(e.get("value", "")).lower() in blob
+             and e.get("kind") in ("account", "phone", "url", "email", "wallet", "name")]
     merged, seen = [], set()
     for e in raw + regex + found:
         key = (e.get("kind"), str(e.get("value", "")).strip().lower())
@@ -125,7 +148,6 @@ def link(s: CaseState) -> CaseState:
     with db.LOCK:
         c["entities"] = core.register_entities(c, s.get("raw_entities", []))
         db.put_case(c)
-        before = c["network_id"]
         assigned, merges, changed = core.recluster()
         c = db.get_case(c["id"])
     nid = c["network_id"]
@@ -156,26 +178,27 @@ def link(s: CaseState) -> CaseState:
     return {"case": c, "network_ids_touched": touched}
 
 
-def networks(s: CaseState) -> CaseState:
+def _network_cases(nid: str, all_ents: dict) -> List[dict]:
+    return [core.hydrate(x, all_ents) for x in db.list_cases() if x["network_id"] == nid]
+
+
+def structure(s: CaseState) -> CaseState:
+    """Code only. A network that already exists gets the new report at once (size, loss and
+    link map), keeping its current priority and brief until `networks` has re-decided them.
+    A brand-new network appears when its priority is known."""
     touched = s.get("network_ids_touched", [])
     if not touched:
         return {}
     now = utcnow()
     all_ents = {e["id"]: e for e in db.all_entities()}
     weak = linking.weak_name_pairs([e for e in all_ents.values() if e["kind"] == "name"])
-    for nid in touched:
-        cases = [core.hydrate(x, all_ents) for x in db.list_cases() if x["network_id"] == nid]
-        if len(cases) < 2:
-            continue
-        net = core.build_network(nid, cases, all_ents, weak, now)
-        was_review = (db.get_network(nid) or {}).get("status") == "needs_review"
-        net = network_graph.run(net, cases, want_brief=True)
-        db.put_network(net)
-        emit("brief_updated", nid, f"Brief for {nid} updated ({'checked' if net['brief']['checked'] else 'needs review'})")
-        if net["status"] == "needs_review" and not was_review:
-            emit("needs_review", nid, f"{nid} needs human review: " + "; ".join(
-                (net["brief"] or {}).get("check_notes", [])[:2] or net["priority"]["reasons"][-1:]))
-    core.rerank(emit_for=touched)
+    with db.LOCK:
+        for nid in touched:
+            if db.get_network(nid) is None:
+                continue
+            cases = _network_cases(nid, all_ents)
+            if len(cases) >= 2:
+                db.put_network(core.build_network(nid, cases, all_ents, weak, now))
     return {}
 
 
@@ -190,6 +213,49 @@ def packet(s: CaseState) -> CaseState:
     return {"case": c}
 
 
+def networks(s: CaseState) -> CaseState:
+    touched = s.get("network_ids_touched", [])
+    if touched:
+        with _net_lock():
+            db.check_alive()
+            now = utcnow()
+            all_ents = {e["id"]: e for e in db.all_entities()}
+            weak = linking.weak_name_pairs([e for e in all_ents.values() if e["kind"] == "name"])
+            jobs = []
+            # 1) Priority first: the queue moves as soon as the decision is in.
+            for nid in touched:
+                cases = _network_cases(nid, all_ents)
+                if len(cases) < 2:
+                    continue
+                was_review = (db.get_network(nid) or {}).get("status") == "needs_review"
+                net = core.build_network(nid, cases, all_ents, weak, now)
+                net = network_graph.run_decide(net, cases)
+                db.put_network(net)
+                jobs.append((nid, cases, was_review))
+            core.rerank(emit_for=touched)
+            # 2) Then the brief, fact-checked before anyone reads it.
+            for nid, cases, was_review in jobs:
+                db.check_alive()
+                net = db.get_network(nid)
+                if net is None:
+                    continue
+                net = network_graph.run_brief(net, cases)
+                with db.LOCK:
+                    cur = db.get_network(nid)
+                    if cur:
+                        net["priority"]["rank"] = cur["priority"]["rank"]
+                    db.put_network(net)
+                emit("brief_updated", nid,
+                     f"Brief for {nid} updated ({'checked' if net['brief']['checked'] else 'needs review'})")
+                if net["status"] == "needs_review" and not was_review:
+                    emit("needs_review", nid, f"{nid} needs human review: " + "; ".join(
+                        (net["brief"] or {}).get("check_notes", [])[:2] or net["priority"]["reasons"][-1:]))
+    c = db.get_case(s["case"]["id"])
+    if c:
+        db.put_case(c, meta_={"network_done": True})
+    return {}
+
+
 def _after_completeness(s: CaseState) -> str:
     return "stop" if s.get("missing") else "urgency"
 
@@ -201,16 +267,18 @@ def build():
     g.add_node("urgency", urgency_node)
     g.add_node("extract", extract)
     g.add_node("link", link)
-    g.add_node("networks", networks)
+    g.add_node("structure", structure)
     g.add_node("packet", packet)
+    g.add_node("networks", networks)
     g.add_edge(START, "guard")
     g.add_edge("guard", "completeness")
     g.add_conditional_edges("completeness", _after_completeness, {"stop": END, "urgency": "urgency"})
     g.add_edge("urgency", "extract")
     g.add_edge("extract", "link")
-    g.add_edge("link", "networks")
-    g.add_edge("networks", "packet")
-    g.add_edge("packet", END)
+    g.add_edge("link", "structure")
+    g.add_edge("structure", "packet")
+    g.add_edge("packet", "networks")
+    g.add_edge("networks", END)
     return g.compile()
 
 

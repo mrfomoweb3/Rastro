@@ -82,7 +82,7 @@ def restore_snapshot() -> bool:
 # ------------------------------------------------------------------ endpoints
 @app.get("/health")
 def health():
-    return {"ok": True, "serv": serv.available(), "cases": db.count(db.cases)}
+    return {"ok": True, **serv.status(), "cases": db.count(db.cases)}
 
 
 @app.post("/intake/sessions", response_model=IntakeReply)

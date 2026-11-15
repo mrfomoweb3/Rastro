@@ -84,6 +84,9 @@ body {
 .enter { animation: rise .5s cubic-bezier(.2,.7,.2,1) both; }
 
 @keyframes ping-soft { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.live-dot-good { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 60%, transparent); animation: ping-soft 1.8s infinite; }
+@keyframes pulse-ring { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+.pulse-ring { transform-box: fill-box; transform-origin: center; animation: pulse-ring 1.6s ease-out infinite; }
 .live-dot { box-shadow: 0 0 0 0 color-mix(in srgb, var(--p1) 60%, transparent); animation: ping-soft 1.8s infinite; }
 
 /* Rays fanning out from behind the hero figure. Low alpha so the headline stays readable. */
@@ -106,6 +109,6 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .beams, .flow, .share-dot { animation: none; }
-  .enter, .live-dot { animation: none; }
+  .enter, .live-dot, .live-dot-good, .pulse-ring { animation: none; }
   * { scroll-behavior: auto !important; }
 }

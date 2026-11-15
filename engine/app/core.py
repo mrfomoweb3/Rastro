@@ -17,9 +17,24 @@ from rules.normalize import normalize
 RULEBOOK = (ENGINE_DIR / "rules" / "rulebook.md").read_text()
 BRIEF_TOP_N = 10
 
-SHADOW_HINT = ("Every item in why_linked must cite edge ids that appear in the provided graph. "
-               "Every number must equal a number in the provided metrics. Do not include any person's name. "
+SHADOW_HINT = ("Every item in why_linked must cite detail ids that appear in shared_details. "
+               "Every number must equal a number in the input. Do not include any person's name. "
                "Do not state anyone is guilty. If a claim cannot be supported, remove it.")
+
+BRIEF_SYSTEM = (
+    "You write short briefs for analysts in a bank's fraud team. Write plain English that a busy person can read "
+    "once. Return JSON with the keys summary (2 to 4 sentences), why_linked (a list of {claim, detail_ids}), "
+    "gaps (a list of short sentences about what is not known) and next_steps (a list of short suggestions).\n"
+    "Rules:\n"
+    "- Use only the facts in the input. Copy every number exactly as it is given. Write money the way the input "
+    "does, for example $43,780.02.\n"
+    "- Do not mention dates, times, scores, ranks, confidence values, rule ids, detail ids or field names. Say "
+    "\"mule network\", never \"mule_network\".\n"
+    "- Each why_linked item is an object {\"claim\": one full sentence, \"detail_ids\": [...]} and explains one shared detail (an account, phone, website, email or wallet) and how many "
+    "reports share it. Put that detail's detail_id in detail_ids.\n"
+    "- Never name a person or a victim. Never say anyone is guilty or a criminal.\n"
+    "- Rastro never freezes money or blocks accounts. next_steps are suggestions for human investigators.\n"
+    + SHADOW_HINT)
 
 
 # ------------------------------------------------------------------ entities
@@ -140,15 +155,21 @@ def decide(net: dict, cases: List[dict]) -> dict:
     facts = priority.facts_for(cases, net["metrics"], strong_edge_count(net))
     code_out = priority.evaluate(facts)
     result, notes, meta = code_out, [], None
+    tried = False
     if serv.available():
+        tried = True
         user = ("Network " + net["id"] + ". Facts computed by code (do not change any number):\n"
                 + json.dumps(facts, indent=1) + "\nCurrent typology: " + json.dumps(net["typology"]))
-        for model in ([serv.MODEL_KRONOS, serv.MODEL_MULTIPATH] if serv.USE_KRONOS else [serv.MODEL_MULTIPATH]):
+        plan = [(serv.MODEL_MULTIPATH, serv.TIMEOUT_DECIDE)]
+        if serv.USE_KRONOS:
+            plan.insert(0, (serv.MODEL_KRONOS, serv.TIMEOUT_DECIDE_KRONOS))
+        for model, limit in plan:
             try:
-                out, meta = serv.call_json(model, RULEBOOK, user, tools=[serv.PROMPT_GUARD])
+                out, meta = serv.call_json(model, RULEBOOK, user, tools=[serv.PROMPT_GUARD], timeout=limit)
                 result, notes = priority.reconcile(out, code_out)
                 break
             except Exception as e:  # noqa: BLE001
+                result, notes, meta = code_out, [], None
                 audit("network", net["id"], "decide", "code", f"SERV {model} failed ({type(e).__name__}); "
                       "trying fallback.", [], model)
     tier = result["tier"]
@@ -159,13 +180,15 @@ def decide(net: dict, cases: List[dict]) -> dict:
     review = bool(result.get("needs_review"))
     net["status"] = "needs_review" if review else "ok"
     summary = (f"{tier}, typology {net['typology']['label']} ({net['typology']['confidence']}), score {sc}. "
-               + " ".join(result["reasons"][:3]))
+               + " ".join(result["reasons"][:4]))
     if meta:
-        audit("network", net["id"], "decide", "serv", summary, result["rule_ids"], meta["model"],
+        # After " | " come the technical notes; screens show only the part before it.
+        tech = " ".join(notes) if notes else "SERV agreed with the code rulebook."
+        audit("network", net["id"], "decide", "serv", summary + " | " + tech, result["rule_ids"], meta["model"],
               meta["cost_usd"], meta["latency_ms"])
     else:
-        audit("network", net["id"], "decide", "code", summary + " (offline: code rulebook)",
-              result["rule_ids"], serv.FALLBACK_MODEL)
+        why = "SERV did not answer in time: code rulebook" if tried else "offline: code rulebook"
+        audit("network", net["id"], "decide", "code", f"{summary} ({why})", result["rule_ids"], serv.FALLBACK_MODEL)
     return net
 
 
@@ -182,18 +205,56 @@ def shared_entities(net: dict) -> List[dict]:
     return sorted(out, key=lambda x: (x["strength"] != "strong", -x["report_count"], x["entity_id"]))
 
 
+def pattern_words(label: str) -> str:
+    """The scam pattern in words an analyst would use."""
+    return {"mixed": "a mix of scam types", "unknown": "not clear yet"}.get(label, label.replace("_", " "))
+
+
 def _brief_inputs(net: dict, cases: List[dict]) -> dict:
+    """What SERV gets to write a brief from: plain facts only. No dates, scores or rule ids,
+    so there is nothing technical to copy, and no victim text at all."""
+    m = net["metrics"]
+    se = shared_entities(net)
     return {
         "network_id": net["id"],
-        "metrics": net["metrics"],
-        "typology": net["typology"],
-        "priority": {k: net["priority"][k] for k in ("tier", "rank", "rule_ids", "reasons")},
-        "shared_entities": shared_entities(net),
-        "weak_edges": [e for e in net["graph"]["edges"] if e["id"].startswith("W-")],
-        "cases": [{"case_id": c["id"], "amount": c["amount"], "paid_at": c["paid_at"], "channel": c["channel"],
-                   "scam_type": c["scam_type"]["label"], "urgency": c["urgency"]["tier"],
-                   "flags": c["flags"]} for c in sorted(cases, key=lambda c: c["paid_at"])],
+        "reports": m["case_count"],
+        "victims": m["victim_count"],
+        "total_loss": f"${m['total_loss']:,.2f}",
+        "reports_in_the_last_7_days": m["cases_last_7d"],
+        "reports_paid_in_the_last_24_hours": sum(1 for c in cases if c["urgency"]["tier"] == "P1"),
+        "pattern": pattern_words(net["typology"]["label"]),
+        "priority": net["priority"]["tier"],
+        "why_it_is_ranked_here": list(net["priority"]["reasons"]),
+        "shared_details": [{"detail_id": s["entity_id"], "kind": s["kind"],
+                            "label": s["label"].replace("acct ", "account "),
+                            "reports_sharing_it": s["report_count"]} for s in se if s["strength"] == "strong"][:8],
+        "some_reports_only_share_a_similar_name": any(s["strength"] == "weak" for s in se),
+        "a_report_tried_to_instruct_the_system": any("injection_attempt" in c["flags"] for c in cases),
     }
+
+
+def _brief_from_model(raw: dict, net: dict) -> dict:
+    """Turn SERV's JSON into a Brief. The model points at shared details by id; code looks up
+    the real links for each one. An id it made up is kept as-is so the fact-check rejects it."""
+    by_id = {s["entity_id"]: s for s in shared_entities(net)}
+    why = []
+    for w in (raw.get("why_linked") or []):
+        if not isinstance(w, dict):
+            continue
+        ids: List[str] = []
+        for d in (w.get("detail_ids") or []):
+            s = by_id.get(str(d))
+            ids += s["edge_ids"] if s else [str(d)]
+        ids += [str(x) for x in (w.get("edge_ids") or [])]
+        text = next((w[k] for k in ("claim", "text", "reason", "explanation", "description", "statement")
+                     if isinstance(w.get(k), str) and w[k].strip()), "")
+        why.append({"claim": text.strip()[:400], "edge_ids": list(dict.fromkeys(ids))})
+    def strs(x) -> List[str]:
+        return [str(i)[:300] for i in x if isinstance(i, str) and i.strip()][:6] if isinstance(x, list) else []
+
+    return {"summary": str(raw.get("summary") or "")[:1200], "why_linked": why[:6],
+            "gaps": strs(raw.get("gaps")), "next_steps": strs(raw.get("next_steps")),
+            "checked": False, "check_notes": []}
 
 
 def _template_brief(net: dict, cases: List[dict]) -> dict:
@@ -201,23 +262,26 @@ def _template_brief(net: dict, cases: List[dict]) -> dict:
     se = shared_entities(net)
     strong = [s for s in se if s["strength"] == "strong"]
     p1 = [c for c in cases if c["urgency"]["tier"] == "P1"]
+    recent = f"{m['cases_last_7d']} of them" if m["cases_last_7d"] else "none of them"
     summary = (f"{m['case_count']} reports from {m['victim_count']} victims with a combined loss of "
-               f"${m['total_loss']:,.2f}, {m['cases_last_7d']} of them in the last 7 days. "
+               f"${m['total_loss']:,.2f}, {recent} in the last 7 days. "
                f"The reports are tied together by shared payment and contact details, not by names. "
-               f"Pattern looks like {t['label'].replace('_', ' ')}; rated {p['tier']} under "
-               f"{', '.join(p['rule_ids'])}.")
+               + (f"The pattern looks like {'an' if t['label'][0] in 'aeiou' else 'a'} {t['label'].replace('_', ' ')}." if t["label"] not in ("unknown", "mixed")
+                  else "The scam pattern is mixed or not yet clear."))
     if p1:
-        summary += f" {len(p1)} report(s) are inside the 24-hour window where a bank hold may still be possible."
+        summary += (f" {len(p1)} {'report is' if len(p1) == 1 else 'reports are'} inside the 24-hour window"
+                    " where a bank hold may still be possible.")
     kind_words = {"account": "paid into the same receiving account", "phone": "were contacted from the same phone number",
                   "url": "were sent to the same website", "email": "dealt with the same email address",
                   "wallet": "paid into the same crypto wallet"}
-    why = [{"claim": f"{s['report_count']} reports {kind_words[s['kind']]} ({s['label']}).", "edge_ids": s["edge_ids"]}
+    why = [{"claim": f"{s['report_count']} reports {kind_words[s['kind']]} "
+                     f"({s['label'].replace('acct ', 'account ')}).", "edge_ids": s["edge_ids"]}
            for s in strong[:5]]
     gaps = ["Account-holder identity behind the shared details is not known to Rastro."]
     if any(s["kind"] == "account" for s in strong):
         gaps.append("No confirmation yet from the receiving bank on the account's other inflows.")
     if any(e["id"].startswith("W-") for e in net["graph"]["edges"]) or any(s["strength"] == "weak" for s in se):
-        gaps.append("Name look-alikes are shown as weak links only and were not used to join reports.")
+        gaps.append("Similar names are shown as dotted lines only. They were not used to join reports.")
     if any("injection_attempt" in c["flags"] for c in cases):
         gaps.append("One report contains text that tried to instruct the system; it was kept as evidence only.")
     steps = []
@@ -235,33 +299,32 @@ def _template_brief(net: dict, cases: List[dict]) -> dict:
 
 
 def brief(net: dict, cases: List[dict]) -> dict:
-    inputs = _brief_inputs(net, cases)
-    out, meta = None, None
+    """Write the network brief. SERV drafts it (shadow agent on); code fact-checks the draft
+    straight away. A draft that fails any check is dropped and the template brief, which is
+    built only from code facts, is used instead. The audit log records which one it was."""
+    out = None
     if serv.available():
-        system = ("You write investigator briefs for a bank fraud team. Output JSON with keys summary (2-4 sentences), "
-                  "why_linked (list of {claim, edge_ids}), gaps (list), next_steps (list). Use only the facts given. "
-                  "Copy numbers exactly from the input. Never name a person. Never say anyone is guilty. Rastro never "
-                  "freezes money or blocks accounts; next steps are suggestions for human investigators. "
-                  + SHADOW_HINT)
-        user = as_evidence([json.dumps(inputs)]).replace("victim-supplied data", "case data")
+        user = as_evidence([json.dumps(_brief_inputs(net, cases))]).replace("victim-supplied data", "case data")
         try:
-            raw, meta = serv.call_json(serv.MODEL_PLAIN, system, user,
+            raw, meta = serv.call_json(serv.MODEL_PLAIN, BRIEF_SYSTEM, user, timeout=serv.TIMEOUT_BRIEF,
                                        tools=[serv.PROMPT_GUARD, serv.shadow_tool(SHADOW_HINT)])
-            out = {"summary": str(raw.get("summary", ""))[:1200],
-                   "why_linked": [{"claim": str(w.get("claim", "")), "edge_ids": [str(x) for x in w.get("edge_ids", [])]}
-                                  for w in (raw.get("why_linked") or []) if isinstance(w, dict)],
-                   "gaps": [str(x) for x in (raw.get("gaps") or [])][:8],
-                   "next_steps": [str(x) for x in (raw.get("next_steps") or [])][:8],
-                   "checked": False, "check_notes": []}
+            draft = _brief_from_model(raw, net)
+            issues = brief_issues(net, draft, cases, strict=True)
+            if issues:
+                audit("network", net["id"], "brief", "shadow",
+                      f"SERV draft failed the fact-check ({len(issues)} issue(s): {'; '.join(issues[:2])}). "
+                      "The standard template was used instead.", [], meta["model"], meta["cost_usd"], meta["latency_ms"])
+            else:
+                out = draft
+                audit("network", net["id"], "brief", "shadow", "Brief written by SERV with the shadow-agent "
+                      "validation loop.", [], meta["model"], meta["cost_usd"], meta["latency_ms"])
         except Exception as e:  # noqa: BLE001
-            audit("network", net["id"], "brief", "code", f"SERV brief failed ({type(e).__name__}); using template.")
+            audit("network", net["id"], "brief", "code", f"SERV brief failed ({type(e).__name__}); using the "
+                  "standard template.")
     if out is None:
         out = _template_brief(net, cases)
-        audit("network", net["id"], "brief", "code", "Brief written from code template (offline).", [],
-              serv.FALLBACK_MODEL)
-    else:
-        audit("network", net["id"], "brief", "shadow", "Brief written with shadow-agent validation loop.", [],
-              meta["model"], meta["cost_usd"], meta["latency_ms"])
+        audit("network", net["id"], "brief", "code", "Brief written from the standard template"
+              + (" (offline)." if not serv.has_key() else "."), [], serv.FALLBACK_MODEL)
     net["brief"] = Brief(**out).model_dump()
     return net
 
@@ -270,6 +333,10 @@ def brief(net: dict, cases: List[dict]) -> dict:
 _ID_RE = re.compile(r"\b[A-Z]{1,2}-[A-Z0-9-]*\d")
 _NUM_RE = re.compile(r"(?<![A-Za-z\d.])\$?(\d[\d,]*(?:\.\d+)?)")
 _BANNED = re.compile(r"\b(guilty|convicted|criminal|is a (?:scammer|fraudster)|are (?:scammers|fraudsters))\b", re.I)
+_REVIEW = re.compile(r"\b(?:review is (?:needed|required)|needs? (?:a )?(?:human |manual )?review|requires? (?:human |manual )?review)\b", re.I)
+# Internal wording that must never reach an analyst's screen in a SERV-written brief.
+_INTERNAL = re.compile(r"\b(?:R[0-7]|U[1-4])\b|[a-z]_[a-z]|\b(?:confidence|typology|score|edge|detail_id)\b"
+                       r"|\d{4}-\d{2}-\d{2}", re.I)
 
 
 def _num(s: str) -> float:
@@ -297,10 +364,13 @@ def allowed_numbers(net: dict, cases: List[dict]) -> set:
     return {round(float(v), 2) for v in vals}
 
 
-def verify(net: dict, cases: List[dict]) -> dict:
-    b = net.get("brief")
-    if not b:
-        return net
+def brief_issues(net: dict, b: dict, cases: List[dict], strict: bool = False) -> List[str]:
+    """Fact-check one brief against the graph and the code-computed numbers.
+
+    Always: every claim points at real links, every number in the summary and the claims
+    matches a metric, no person is named, nobody is called guilty. With `strict` (used on
+    SERV drafts before they are accepted) the number check also covers gaps and next steps,
+    the draft must not be empty, and internal wording such as rule ids is not allowed."""
     notes: List[str] = []
     edge_ids = {e["id"] for e in net["graph"]["edges"]}
     for w in b["why_linked"]:
@@ -311,6 +381,18 @@ def verify(net: dict, cases: List[dict]) -> dict:
             notes.append(f"Claim cites edges not in graph: {', '.join(bad[:3])}")
     allowed = allowed_numbers(net, cases)
     texts = [b["summary"]] + [w["claim"] for w in b["why_linked"]]
+    if strict:
+        texts += list(b["gaps"]) + list(b["next_steps"])
+        if not b["summary"].strip():
+            notes.append("Draft has no summary.")
+        if not b["why_linked"]:
+            notes.append("Draft does not explain how the reports are linked.")
+        if any(not w["claim"].strip() for w in b["why_linked"]):
+            notes.append("Draft has an empty claim.")
+        if any(_INTERNAL.search(t) for t in texts):
+            notes.append("Draft uses internal wording (rule ids, field names or dates).")
+        if net.get("status") != "needs_review" and any(_REVIEW.search(t) for t in texts):
+            notes.append("Draft asks for a review the rules did not ask for.")
     for t in texts:
         for raw in _NUM_RE.findall(_ID_RE.sub(" ", t)):
             v = round(_num(raw), 2)
@@ -328,8 +410,16 @@ def verify(net: dict, cases: List[dict]) -> dict:
             break
     if _BANNED.search(full):
         notes.append("Brief states or implies guilt.")
+    return notes
+
+
+def verify(net: dict, cases: List[dict]) -> dict:
+    b = net.get("brief")
+    if not b:
+        return net
+    notes = brief_issues(net, b, cases)
     if net["typology"]["confidence"] < priority.R5_CONF:
-        notes.append(f"Typology confidence {net['typology']['confidence']} below {priority.R5_CONF} (R5).")
+        notes.append("The scam pattern is not clear enough to confirm.")
     b["checked"] = not notes
     b["check_notes"] = sorted(set(notes))
     if notes:

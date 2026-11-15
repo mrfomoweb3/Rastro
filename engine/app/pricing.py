@@ -6,9 +6,9 @@ from __future__ import annotations
 import os
 
 PRICES = {
-    # model base: (input $/1M, output $/1M)
-    "gpt-5.4-mini": (float(os.environ.get("PRICE_IN_PER_M", "0.25")),
-                     float(os.environ.get("PRICE_OUT_PER_M", "2.00"))),
+    # model base: (input $/1M, output $/1M). An empty value in .env counts as "not set".
+    "gpt-5.4-mini": (float(os.environ.get("PRICE_IN_PER_M") or "0.25"),
+                     float(os.environ.get("PRICE_OUT_PER_M") or "2.00")),
 }
 # Extra multiplier per SERV feature suffix (placeholder until measured).
 SUFFIX_MULT = {"multipath": 1.5, "kronos": 1.5}

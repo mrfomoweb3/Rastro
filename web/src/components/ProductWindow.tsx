@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Network } from "@/lib/contract";
 import { money, typologyLabel } from "@/lib/format";
+import { plain } from "@/lib/plain";
 import { NetworkGraph } from "./NetworkGraph";
 import { ReviewBadge, TierBadge } from "./TierBadge";
 
@@ -69,7 +70,7 @@ export function ProductWindow() {
                   <div><dt className="text-xs text-muted">Reports</dt><dd className="font-semibold tabular">{sel.metrics.case_count}</dd></div>
                   <div><dt className="text-xs text-muted">Total loss</dt><dd className="font-semibold tabular">{money(sel.metrics.total_loss)}</dd></div>
                 </dl>
-                <p className="line-clamp-6 text-[13px] leading-relaxed text-muted">{sel.brief?.summary}</p>
+                <p className="line-clamp-6 text-[13px] leading-relaxed text-muted">{sel.brief ? plain(sel.brief.summary) : ""}</p>
                 {sel.brief?.checked && (
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-good-bg px-2.5 py-1 text-xs text-good">
                     <span className="size-1.5 rounded-full bg-good" /> Checked against the links

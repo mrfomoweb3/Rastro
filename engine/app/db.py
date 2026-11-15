@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from contextvars import ContextVar
 from typing import Any, Dict, Iterable, List, Optional
 
 from sqlalchemy import (JSON, Column, Float, Integer, MetaData, String, Table, Text,
@@ -21,6 +22,30 @@ if DATABASE_URL.startswith("sqlite"):
     _kw["connect_args"] = {"check_same_thread": False}
 engine = create_engine(DATABASE_URL, **_kw)
 LOCK = threading.RLock()  # one writer at a time (SQLite + background pipeline)
+# Goes up every time the data is replaced (demo reset, pre-bake). A pipeline run binds
+# itself to the value it started with; once the data is replaced, its next write raises
+# Stale, so a slow run can never write old rows into freshly reset data.
+EPOCH = 0
+_bound_epoch: ContextVar[Optional[int]] = ContextVar("rastro_epoch", default=None)
+
+
+class Stale(Exception):
+    """A pipeline run tried to continue after the data it started on was replaced."""
+
+
+def bind_epoch(epoch: Optional[int]) -> None:
+    """Tie the current thread (and the graph nodes it runs) to one data epoch."""
+    _bound_epoch.set(epoch)
+
+
+def bound_epoch() -> Optional[int]:
+    return _bound_epoch.get()
+
+
+def check_alive() -> None:
+    e = _bound_epoch.get()
+    if e is not None and e != EPOCH:
+        raise Stale()
 
 md = MetaData()
 cases = Table("cases", md,
@@ -62,9 +87,11 @@ def init() -> None:
 
 
 def wipe() -> None:
+    global EPOCH
     with LOCK, engine.begin() as cx:
         for t in TABLES:
             cx.execute(delete(t))
+        EPOCH += 1
 
 
 # ---------- meta ----------
@@ -76,6 +103,7 @@ def get_meta(key: str, default=None):
 
 def set_meta(key: str, value) -> None:
     with LOCK, engine.begin() as cx:
+        check_alive()
         cx.execute(delete(meta).where(meta.c.key == key))
         cx.execute(insert(meta).values(key=key, value=json.dumps(value)))
 
@@ -85,6 +113,7 @@ def put_case(c: dict, meta_: Optional[dict] = None) -> None:
     row = dict(id=c["id"], status=c["status"], network_id=c["network_id"],
                reported_at=c["reported_at"], data=c)
     with LOCK, engine.begin() as cx:
+        check_alive()
         old = cx.execute(select(cases.c.meta).where(cases.c.id == c["id"])).first()
         if old is None:
             cx.execute(insert(cases).values(**row, meta=meta_ or {}))
@@ -156,6 +185,7 @@ def all_entities() -> List[dict]:
 def put_entities(rows: Iterable[dict]) -> None:
     rows = list(rows)
     with LOCK, engine.begin() as cx:
+        check_alive()
         for e in rows:
             cx.execute(delete(entities).where(entities.c.id == e["id"]))
         if rows:
@@ -166,12 +196,14 @@ def put_entities(rows: Iterable[dict]) -> None:
 # ---------- networks ----------
 def put_network(n: dict) -> None:
     with LOCK, engine.begin() as cx:
+        check_alive()
         cx.execute(delete(networks).where(networks.c.id == n["id"]))
         cx.execute(insert(networks).values(id=n["id"], rank=n["priority"]["rank"], data=n))
 
 
 def delete_network(nid: str) -> None:
     with LOCK, engine.begin() as cx:
+        check_alive()
         cx.execute(delete(networks).where(networks.c.id == nid))
 
 
@@ -192,6 +224,7 @@ def list_networks(limit: Optional[int] = None) -> List[dict]:
 # ---------- audit ----------
 def add_audit(ev: dict) -> dict:
     with LOCK, engine.begin() as cx:
+        check_alive()
         seq = cx.execute(insert(audit).values(object_id=ev["object_id"], cost_usd=ev["cost_usd"], data={})
                          ).inserted_primary_key[0]
         ev = {**ev, "id": f"A-{seq:06d}"}
@@ -215,6 +248,7 @@ def total_cost() -> float:
 # ---------- events ----------
 def add_event(ev: dict) -> dict:
     with LOCK, engine.begin() as cx:
+        check_alive()
         eid = cx.execute(insert(events).values(data={})).inserted_primary_key[0]
         ev = {**ev, "id": int(eid)}
         cx.execute(update(events).where(events.c.id == eid).values(data=ev))
@@ -236,6 +270,7 @@ def get_session(sid: str) -> Optional[dict]:
 
 def put_session(s: dict) -> None:
     with LOCK, engine.begin() as cx:
+        check_alive()
         cx.execute(delete(sessions).where(sessions.c.id == s["id"]))
         cx.execute(insert(sessions).values(id=s["id"], data=s))
 
@@ -250,12 +285,14 @@ def dump_all() -> Dict[str, List[dict]]:
 
 
 def load_all(snapshot: Dict[str, List[dict]]) -> None:
+    global EPOCH
     with LOCK, engine.begin() as cx:
         for t in TABLES:
             cx.execute(delete(t))
             rows = snapshot.get(t.name) or []
             if rows:
                 cx.execute(insert(t), rows)
+        EPOCH += 1
     _reset_sequences()
 
 

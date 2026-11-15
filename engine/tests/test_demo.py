@@ -86,6 +86,12 @@ def test_live_report_end_to_end(fresh):
     secs = time.time() - t0
     c = Case(**client.get(f"/cases/{cid}").json())
     assert c.packet_url and secs < 60
+    # The packet is ready before the network is re-ranked; wait for the run to finish.
+    for _ in range(300):
+        if db.get_case_meta(cid).get("network_done"):
+            break
+        time.sleep(0.2)
+    assert db.get_case_meta(cid).get("network_done")
     assert c.urgency.tier == "P1" and c.urgency.rule_id == "U1"
     assert c.network_id == "N-007"
     n = Network(**client.get("/networks/N-007").json())
@@ -97,6 +103,8 @@ def test_live_report_end_to_end(fresh):
     types = {e.type for e in evs}
     assert {"case_created", "case_linked", "network_reranked", "brief_updated"} <= types
     assert any("#6 → #1" in e.message for e in evs if e.type == "network_reranked")
+    order = [e.type for e in evs]
+    assert order.index("network_reranked") < order.index("brief_updated")  # the queue moves before the brief lands
 
 
 def test_contract_endpoints(baked):

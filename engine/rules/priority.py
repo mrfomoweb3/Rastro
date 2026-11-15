@@ -87,20 +87,22 @@ def evaluate(f: dict) -> dict:
     tier = None
     if f["total_loss"] >= R1_LOSS and f["cases_last_7d"] >= R1_RECENT:
         tier = "P1"; rules.append("R1")
-        reasons.append(f"Total loss ${f['total_loss']:,.0f} with {f['cases_last_7d']} cases in the last 7 days.")
+        reasons.append(f"${f['total_loss']:,.0f} lost in total, with {f['cases_last_7d']} new reports in the last 7 days.")
     if f["max_victims_on_one_account"] >= R2_VICTIMS:
         tier = more_urgent(tier or "P2", "P2"); rules.append("R2")
         reasons.append(f"One receiving account is linked to {f['max_victims_on_one_account']} different victims.")
     if tier is None and f["case_count"] == 2 and f["total_loss"] < R6_LOSS:
         tier = "P4"; rules.append("R6")
-        reasons.append(f"Only 2 cases and total loss ${f['total_loss']:,.0f}.")
+        reasons.append(f"Only 2 reports, with ${f['total_loss']:,.0f} lost in total.")
     if tier is None:
         tier = "P3"; rules.append("R0")
-        reasons.append("No escalation rule applies; default tier.")
+        reasons.append("Nothing here calls for a higher priority yet.")
     if f["p1_case_count"] >= 1 and f["victim_count"] >= 2 and tier != "P1":
         new = raise_tier(tier)
         rules.append("R3")
-        reasons.append(f"Contains {f['p1_case_count']} P1 case(s) with the freeze window open; raised {tier}→{new}.")
+        n = f['p1_case_count']
+        reasons.append(f"{n} {'report was' if n == 1 else 'reports were'} paid in the last 24 hours, "
+                       f"so a bank hold may still work. Priority raised to {new}.")
         tier = new
 
     needs_review = False
@@ -108,17 +110,22 @@ def evaluate(f: dict) -> dict:
         rules.append("R4"); needs_review = True
         if tier in ("P1", "P2"):
             tier = "P3"
-        reasons.append("Held together only by name look-alikes; needs human review.")
+        reasons.append("Only similar names connect these reports, so a person should review them.")
     if conf < R5_CONF:
         rules.append("R5"); needs_review = True
-        reasons.append(f"Typology confidence {conf} is below {R5_CONF}; needs human review.")
+        reasons.append("The scam pattern is not clear enough, so a person should review it.")
     return {"typology": typology, "typology_confidence": conf, "tier": tier,
             "needs_review": needs_review, "rule_ids": rules, "reasons": reasons}
 
 
 def reconcile(model_out: dict, code_out: dict) -> tuple[dict, List[str]]:
-    """R7: when SERV and code disagree, the more cautious outcome wins."""
+    """R7: when SERV and code disagree, the more cautious outcome wins.
+
+    Returns (result, notes). `notes` are the technical details for the audit log. The
+    `reasons` an analyst reads are always the code rulebook's own sentences (the numbers in
+    them come from code), plus one plain line whenever SERV saw it differently."""
     notes: List[str] = []
+    said: List[str] = []
     out = dict(model_out)
     if model_out.get("tier") not in TIERS:
         out["tier"] = code_out["tier"]; notes.append("SERV tier invalid; used code tier.")
@@ -127,24 +134,30 @@ def reconcile(model_out: dict, code_out: dict) -> tuple[dict, List[str]]:
         if out["tier"] in ("P1", "P2") and "R4" in code_out["rule_ids"]:
             out["tier"] = code_out["tier"]
         notes.append(f"SERV said {model_out['tier']}, code rules say {code_out['tier']}; R7 kept {out['tier']}.")
+        said.append(f"SERV suggested {model_out['tier']}. The written rules say {code_out['tier']}, so the more "
+                    f"cautious rating, {out['tier']}, was kept.")
     if code_out["needs_review"] and not model_out.get("needs_review"):
         out["needs_review"] = True; notes.append("Code rules require review (R4/R5); SERV did not flag it.")
+    elif model_out.get("needs_review") and not code_out["needs_review"]:
+        out["needs_review"] = True
+        said.append("SERV asked for a person to review this network.")
     try:
         c = float(model_out.get("typology_confidence", 0))
     except (TypeError, ValueError):
         c = 0.0
     out["typology_confidence"] = max(0.0, min(1.0, c))
     if out["typology_confidence"] < R5_CONF:
+        if not out.get("needs_review"):
+            said.append("SERV was not confident about the scam pattern, so a person should review it.")
         out["needs_review"] = True
     if out.get("typology") not in TYPOLOGY_FOR_SCAM.values() and out.get("typology") != "mule_network":
         out["typology"] = code_out["typology"]; notes.append("SERV typology invalid; used code typology.")
-    rid = set(out.get("rule_ids") or [])
+    known = {f"R{i}" for i in range(8)}
+    rid = {str(r) for r in (out.get("rule_ids") or []) if str(r) in known}
     missing = [r for r in code_out["rule_ids"] if r not in rid]
     if missing:
         notes.append("Rules SERV did not cite: " + ", ".join(missing))
     out["rule_ids"] = sorted(rid | set(code_out["rule_ids"]) | ({"R7"} if notes else set()))
-    if not out.get("reasons"):
-        out["reasons"] = code_out["reasons"]
-    if notes:
-        out["reasons"] = list(out["reasons"]) + ["R7: " + n for n in notes]
+    out["serv_reasons"] = [str(x) for x in (model_out.get("reasons") or []) if isinstance(x, (str, int, float))][:4]
+    out["reasons"] = list(code_out["reasons"]) + said
     return out, notes

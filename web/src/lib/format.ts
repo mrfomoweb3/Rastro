@@ -32,3 +32,7 @@ export function ago(iso: string, now = Date.now()) {
   if (h < 48) return `${h} h ago`;
   return `${Math.round(h / 24)} days ago`;
 }
+
+export const channelLabel: Record<string, string> = {
+  whatsapp: "WhatsApp", sms: "SMS", email: "Email", phone: "Phone call", social: "Social media", website: "Website", other: "Other",
+};
