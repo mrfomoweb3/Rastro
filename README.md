@@ -2,7 +2,7 @@
 
 Scam report triage for bank fraud teams.
 
-![Live demo](https://img.shields.io/badge/live%20demo-rastro.mrfomolabs.xyz-2a56f0) ![Python](https://img.shields.io/badge/python-3.12-3776ab) ![Next.js](https://img.shields.io/badge/next.js-16-000000) ![SERV](https://img.shields.io/badge/AI-OpenServ%20SERV-6b46c1) ![Tests](https://img.shields.io/badge/tests-33%20passing-0f7a55)
+![Live demo](https://img.shields.io/badge/live%20demo-rastro.mrfomolabs.xyz-2a56f0) ![Python](https://img.shields.io/badge/python-3.12-3776ab) ![Next.js](https://img.shields.io/badge/next.js-16-000000) ![SERV](https://img.shields.io/badge/AI-OpenServ%20SERV-6b46c1) ![Tests](https://img.shields.io/badge/tests-33%20passing-0f7a55) ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
 Rastro (Spanish for "trail") turns one scam victim's chat report into a bank-ready evidence packet in seconds. It then links the report to every earlier report that shares an account, phone or link, and ranks the networks behind them so a fraud team knows which one to act on first. The AI drafts and explains; written rules in code decide, and every AI claim is fact-checked before anyone reads it.
 
@@ -390,7 +390,7 @@ Rules: numbers shown to users must come from code, never from a model. Any new S
 
 ## License
 
-_Add a license_
+[MIT](LICENSE). Copyright (c) 2026 mrfomoweb3 and benita2001.
 
 ## Team / Acknowledgements
 
