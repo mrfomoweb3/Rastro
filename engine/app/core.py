@@ -450,6 +450,10 @@ def verify(net: dict, cases: List[dict]) -> dict:
     notes = brief_issues(net, b, cases)
     if net["typology"]["confidence"] < priority.R5_CONF:
         notes.append("The scam pattern is not clear enough to confirm.")
+    repeats = sum(1 for c in cases if "repeat_reporter" in c["flags"])
+    if repeats:
+        notes.append(f"{repeats} {'report comes' if repeats == 1 else 'reports come'} from a person who reported "
+                     "before. A person should confirm them.")
     b["checked"] = not notes
     b["check_notes"] = sorted(set(notes))
     if notes:

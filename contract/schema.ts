@@ -94,3 +94,12 @@ export interface LiveEvent {
   | "brief_updated" | "needs_review"; object_id: string;
   message: string; at: string
 }
+
+// ---- Added 2026-11-15 (see CHANGELOG): analyst login, feedback, export
+export interface Team { slug: string; name: string }
+export interface LoginIn { team: string; password: string }
+export interface FeedbackIn {
+  about: "brief" | "priority";
+  verdict: "accurate" | "needs_changes" | "agree" | "too_high" | "too_low";
+  note?: string;
+}

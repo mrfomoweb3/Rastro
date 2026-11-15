@@ -185,3 +185,20 @@ class ErrorReply(_M):
 
 class MessageIn(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
+
+
+# ---- Added 2026-11-15 (see CHANGELOG): analyst login, feedback, export -------------
+class Team(BaseModel):
+    slug: str
+    name: str
+
+
+class LoginIn(BaseModel):
+    team: str = Field(min_length=1, max_length=40)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class FeedbackIn(BaseModel):
+    about: Literal["brief", "priority"]
+    verdict: Literal["accurate", "needs_changes", "agree", "too_high", "too_low"]
+    note: str = Field(default="", max_length=500)

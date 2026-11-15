@@ -25,7 +25,7 @@ def test_empty_price_lines_in_env_do_not_crash(monkeypatch):
     monkeypatch.setenv("PRICE_IN_PER_M", "")
     monkeypatch.setenv("PRICE_OUT_PER_M", "")
     importlib.reload(pricing)
-    assert pricing.PRICES["gpt-5.4-mini"] == (0.25, 2.0)
+    assert pricing.PRICES["gpt-5.4-mini"] == (0.75, 4.5)
 
 
 def test_reasons_stay_plain_when_serv_disagrees():

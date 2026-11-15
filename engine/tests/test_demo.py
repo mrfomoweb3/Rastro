@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app import ENGINE_DIR, REPO_ROOT, core
 from contract.schema import AuditEvent, Case, IntakeReply, LiveEvent, Network, Stats
+from conftest import login
 
 
 def _rank(db, nid):
@@ -62,7 +63,7 @@ def test_verify_catches_bad_brief(baked):
 def test_live_report_end_to_end(fresh):
     db = fresh
     assert _rank(db, "N-007") == 6
-    client = TestClient(__import__("app.main", fromlist=["app"]).app)
+    client = login(TestClient(__import__("app.main", fromlist=["app"]).app))
     last_event = max([e["id"] for e in client.get("/events").json()] or [0])
     r = client.post("/intake/sessions")
     assert r.status_code == 200
@@ -111,6 +112,10 @@ def test_contract_endpoints(baked):
     from app.main import app
     client = TestClient(app)
     assert client.get("/health").json()["ok"] is True
+    assert client.get("/networks").status_code == 401            # analyst data needs a login
+    assert client.post("/auth/login", json={"team": "demo", "password": "nope"}).status_code == 401
+    assert len(client.get("/public/networks").json()) == 8          # the landing preview stays open
+    login(client)
     [Case(**x) for x in client.get("/cases?limit=20").json()]
     [Case(**x) for x in client.get("/cases?status=needs_review").json()]
     nets = [Network(**x) for x in client.get("/networks").json()]
@@ -119,6 +124,7 @@ def test_contract_endpoints(baked):
     Stats(**client.get("/stats").json())
     assert client.get("/cases/C-9999").status_code == 404 and "error" in client.get("/cases/C-9999").json()
     assert client.post("/demo/reset").status_code == 401
+    assert TestClient(app).post("/demo/reset", headers={"X-Demo-Key": "test-key"}).status_code == 401  # key alone is not enough
     assert client.post("/demo/reset", headers={"X-Demo-Key": "test-key"}).json() == {"ok": True}
     assert client.get("/networks/N-007").json()["priority"]["rank"] == 6
     on_demand = client.post("/networks/N-012/brief")

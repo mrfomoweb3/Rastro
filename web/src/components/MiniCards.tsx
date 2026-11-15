@@ -54,7 +54,7 @@ export function MiniGraph() {
 export function MiniBrief() {
   const [net, setNet] = useState<Network | null>(null);
   useEffect(() => {
-    api.networks().then((l) => setNet(l.filter((n) => n.brief).sort((a, b) => b.metrics.case_count - a.metrics.case_count)[0] ?? null)).catch(() => {});
+    api.preview().then((l) => setNet(l.filter((n) => n.brief).sort((a, b) => b.metrics.case_count - a.metrics.case_count)[0] ?? null)).catch(() => {});
   }, []);
   const claim = net?.brief?.why_linked[0]?.claim;
   return (

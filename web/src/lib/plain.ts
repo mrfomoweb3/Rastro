@@ -43,6 +43,9 @@ const stepText: Record<string, string> = {
   brief: "Wrote the brief",
   verify: "Fact-checked the brief",
   rank: "Updated the ranking",
+  identity: "Checked the reporter",
+  feedback: "Analyst feedback",
+  export: "Exported for case management",
 };
 
 export const stepTitle = (step: string) =>

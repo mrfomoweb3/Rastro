@@ -1,17 +1,21 @@
-"""USD per 1M tokens. PLACEHOLDERS — fill from the SERV model catalog on day 1
-(docs.openserv.ai). Suffixes (-serv-multipath, -serv-kronos-…) may add cost on top;
-run scripts/cost_probe.py and correct these numbers."""
+"""USD per 1M tokens, used to track what SERV costs.
+
+SERV does not publish its own per-token prices. The default is OpenAI's list price for
+the base model gpt-5.4-mini ($0.75 input, $4.50 output per 1M tokens,
+https://developers.openai.com/api/docs/models/gpt-5.4-mini, checked 15 Nov 2026).
+Multipath and Kronos runs are charged by the tokens they actually use, which SERV
+reports in `usage`, so no extra multiplier is applied. Override with PRICE_IN_PER_M and
+PRICE_OUT_PER_M once SERV's own rate is known."""
 from __future__ import annotations
 
 import os
 
+PRICE_SOURCE = "OpenAI list price for gpt-5.4-mini (SERV's own rate is not published)"
 PRICES = {
     # model base: (input $/1M, output $/1M). An empty value in .env counts as "not set".
-    "gpt-5.4-mini": (float(os.environ.get("PRICE_IN_PER_M") or "0.25"),
-                     float(os.environ.get("PRICE_OUT_PER_M") or "2.00")),
+    "gpt-5.4-mini": (float(os.environ.get("PRICE_IN_PER_M") or "0.75"),
+                     float(os.environ.get("PRICE_OUT_PER_M") or "4.50")),
 }
-# Extra multiplier per SERV feature suffix (placeholder until measured).
-SUFFIX_MULT = {"multipath": 1.5, "kronos": 1.5}
 
 
 def cost(model: str, usage) -> float:
@@ -21,10 +25,6 @@ def cost(model: str, usage) -> float:
     if base is None:
         return 0.0
     pin, pout = PRICES[base]
-    mult = 1.0
-    for s, m in SUFFIX_MULT.items():
-        if f"-{s}" in model:
-            mult *= m
     tin = getattr(usage, "prompt_tokens", 0) or 0
     tout = getattr(usage, "completion_tokens", 0) or 0
-    return round(((tin * pin) + (tout * pout)) / 1_000_000 * mult, 6)
+    return round(((tin * pin) + (tout * pout)) / 1_000_000, 6)

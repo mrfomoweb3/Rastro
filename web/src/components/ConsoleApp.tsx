@@ -7,9 +7,10 @@ import {
   ArrowUp, Banknote, Bot, Check, CircleHelp, Clock, Download, FileText, Fish, Globe, Heart, Hourglass, Inbox,
   Landmark, Layers, Loader2, Mail, MessageSquareWarning, Network as NetworkIcon, Pause, PenLine, Phone, Play, RotateCcw,
   Search, ShieldCheck, TrendingUp, TriangleAlert, UserCheck, VenetianMask, Wallet, X, type LucideProps,
+  LogOut, ThumbsUp, ThumbsDown, ArrowDown, FileJson, FileSpreadsheet, LockKeyhole, Building2,
 } from "lucide-react";
-import { api, resetDemo } from "@/lib/api";
-import type { AuditEvent, Case, LiveEvent, Network, Stats } from "@/lib/contract";
+import { api, AuthError, resetDemo } from "@/lib/api";
+import type { AuditEvent, Case, FeedbackIn, LiveEvent, Network, Stats, Team } from "@/lib/contract";
 import { ago, channelLabel, money, moneyExact, typologyLabel } from "@/lib/format";
 import { actorText, plain, stepDetail, stepTitle } from "@/lib/plain";
 import { LIVE_TURNS } from "@/lib/demo";
@@ -34,7 +35,78 @@ type DemoStep = "idle" | "reset" | "chat" | "link" | "rank" | "done" | "error";
 type DemoMsg = { from: "bot" | "me"; text: string };
 type Filter = "all" | "urgent" | "review";
 
+/** Analyst console behind a team login. */
 export function ConsoleApp() {
+  const [team, setTeam] = useState<Team | null | undefined>(undefined);
+  useEffect(() => {
+    api.me().then(setTeam).catch(() => setTeam(null));
+  }, []);
+  if (team === undefined) {
+    return <div className="grid min-h-screen place-items-center bg-bg-raised text-sm text-muted"><Loader2 className="size-5 animate-spin" /></div>;
+  }
+  if (team === null) return <Login onIn={setTeam} />;
+  return <Console key={team.slug} team={team} onSignOut={() => { api.logout().catch(() => {}); setTeam(null); }} />;
+}
+
+function Login({ onIn }: { onIn: (t: Team) => void }) {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [slug, setSlug] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    api.teams().then((t) => { setTeams(t); setSlug((s) => s || t[0]?.slug || ""); })
+      .catch(() => setErr("Can't reach the Rastro engine. Try again in a moment."));
+  }, []);
+  async function go(team: string, pw: string) {
+    setBusy(true); setErr(null);
+    try { onIn(await api.login(team, pw)); }
+    catch (e) { setErr(e instanceof AuthError ? "Wrong team or password." : "Sign-in failed. Try again."); }
+    finally { setBusy(false); }
+  }
+  const hasDemo = teams.some((t) => t.slug === "demo");
+  return (
+    <div className="grid min-h-screen place-items-center bg-bg-raised px-4">
+      <div className="w-full max-w-sm">
+        <Link href="/" aria-label="Rastro home" className="mb-6 flex justify-center"><Logo className="text-[18px]" /></Link>
+        <form onSubmit={(e) => { e.preventDefault(); go(slug, password); }}
+          className="rounded-2xl border border-line bg-bg p-6 shadow-[0_1px_2px_rgba(16,24,40,.04)]">
+          <div className="flex items-center gap-2">
+            <span className="grid size-8 place-items-center rounded-lg bg-accent-soft text-accent"><LockKeyhole className="size-4" /></span>
+            <h1 className="text-base font-semibold">Sign in to the fraud console</h1>
+          </div>
+          <p className="mt-2 text-sm text-muted">Each fraud team has its own login. Your team&apos;s feedback and exports stay private to your team.</p>
+          <label className="mt-5 block text-xs font-medium text-muted" htmlFor="team">Team</label>
+          <div className="mt-1 flex items-center gap-2 rounded-lg border border-line px-2.5 focus-within:border-accent">
+            <Building2 className="size-4 text-faint" />
+            <select id="team" value={slug} onChange={(e) => setSlug(e.target.value)} className="w-full bg-transparent py-2 text-sm outline-none">
+              {teams.map((t) => <option key={t.slug} value={t.slug}>{t.name}</option>)}
+            </select>
+          </div>
+          <label className="mt-3 block text-xs font-medium text-muted" htmlFor="pw">Password</label>
+          <input id="pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
+            className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent" />
+          {err && <p role="alert" className="mt-3 rounded-lg bg-p1-bg px-3 py-2 text-sm text-p1">{err}</p>}
+          <button type="submit" disabled={busy || !slug || !password}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-fg px-4 py-2 text-sm font-medium text-bg disabled:opacity-50">
+            {busy && <Loader2 className="size-4 animate-spin" />} Sign in
+          </button>
+          {hasDemo && (
+            <>
+              <button type="button" disabled={busy} onClick={() => go("demo", "demo")}
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:brightness-110 disabled:opacity-50">
+                <Play className="size-3.5" /> Continue as the demo team
+              </button>
+              <p className="mt-3 text-center text-xs text-faint">Demo team password: <span className="font-mono">demo</span>. All data is synthetic.</p>
+            </>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Console({ team, onSignOut }: { team: Team; onSignOut: () => void }) {
   const [nets, setNets] = useState<Network[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState(false);
@@ -84,11 +156,11 @@ export function ConsoleApp() {
       setError(false);
       api.stats().then(setStats).catch(() => {});
       return list;
-    } catch {
-      setError(true);
+    } catch (e) {
+      if (e instanceof AuthError) onSignOut(); else setError(true);
       return null;
     }
-  }, []);
+  }, [onSignOut]);
 
   const refreshCases = useCallback(() => api.cases(1000).then(setCases).catch(() => {}), []);
 
@@ -233,6 +305,11 @@ export function ConsoleApp() {
           {latest && <span className="truncate">{plain(latest.message)} <span className="text-faint">· {ago(latest.at, now)}</span></span>}
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <span className="hidden items-center gap-1.5 rounded-lg bg-bg-raised px-2.5 py-1.5 text-xs text-muted lg:inline-flex" title="Signed in team">
+            <Building2 className="size-3.5" /> {team.name}
+          </span>
+          <button onClick={onSignOut} aria-label="Sign out" title="Sign out"
+            className="grid size-8 place-items-center rounded-lg border border-line text-muted hover:bg-bg-raised hover:text-fg"><LogOut className="size-4" /></button>
           <Link href="/report" className="hidden items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm text-fg hover:bg-bg-raised sm:inline-flex">
             <MessageSquareWarning className="size-4 text-muted" /> Report a scam
           </Link>
@@ -329,11 +406,12 @@ export function ConsoleApp() {
                     <NetworkGraph network={sel} highlightEdges={highlight} newCaseIds={newCaseIds} cases={netCases} />
                   </div>
                 </Card>
-                <Card className="p-5 xl:max-h-[540px] xl:overflow-y-auto">
+                <Card className="p-5 xl:max-h-[620px] xl:overflow-y-auto">
                   <BriefPanel net={sel} claimIdx={claimIdx} autoPlay={autoPlay}
                     onToggleAuto={() => setAutoPlay((a) => { if (a) { setClaimIdx(null); setHighlight([]); } return !a; })}
                     onClaim={(i, ids) => { setAutoPlay(false); const same = claimIdx === i; setClaimIdx(same ? null : i); setHighlight(same ? [] : ids); }}
                     onMake={makeBrief} busy={briefBusy} />
+                  <FeedbackPanel net={sel} team={team} />
                 </Card>
               </div>
 
@@ -425,12 +503,22 @@ function NetworkHeader({ net, total, moved, packetCase }: { net: Network; total:
             <span>Latest report {shortDate(m.last_seen)}</span>
           </p>
         </div>
-        {packetCase && (
-          <a href={api.packetUrl(packetCase.id)}
+        <div className="flex flex-wrap items-center gap-2">
+          {packetCase && (
+            <a href={api.packetUrl(packetCase.id)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-bg-raised">
+              <Download className="size-4 text-muted" /> Latest packet
+            </a>
+          )}
+          <a href={api.exportUrl(net.id, "csv")} download title="One row per report, for case-management import"
             className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-bg-raised">
-            <Download className="size-4 text-muted" /> Latest packet
+            <FileSpreadsheet className="size-4 text-muted" /> Export CSV
           </a>
-        )}
+          <a href={api.exportUrl(net.id, "json")} download title="Full case file: network, brief, reports and audit trail"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-bg-raised">
+            <FileJson className="size-4 text-muted" /> Export case file
+          </a>
+        </div>
       </div>
       <dl className="grid grid-cols-2 border-t border-line sm:grid-cols-4">
         <Stat label="Reports" value={String(m.case_count)} />
@@ -556,6 +644,81 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
   );
 }
 
+const VERDICTS: { about: FeedbackIn["about"]; verdict: FeedbackIn["verdict"]; label: string; icon: Icon }[] = [
+  { about: "brief", verdict: "accurate", label: "Accurate", icon: ThumbsUp },
+  { about: "brief", verdict: "needs_changes", label: "Needs changes", icon: ThumbsDown },
+  { about: "priority", verdict: "agree", label: "Right", icon: Check },
+  { about: "priority", verdict: "too_low", label: "Should be higher", icon: ArrowUp },
+  { about: "priority", verdict: "too_high", label: "Should be lower", icon: ArrowDown },
+];
+
+/** The analyst's verdict on the brief and the ranking. Saved to the audit trail, visible only to this team. */
+function FeedbackPanel({ net, team }: { net: Network; team: Team }) {
+  const [items, setItems] = useState<AuditEvent[]>([]);
+  const [pick, setPick] = useState<Partial<Record<FeedbackIn["about"], FeedbackIn["verdict"]>>>({});
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const load = useCallback(() => api.feedback(net.id).then(setItems).catch(() => {}), [net.id]);
+  useEffect(() => { load(); }, [load]);
+  async function send() {
+    setBusy(true);
+    try {
+      for (const about of ["brief", "priority"] as const) {
+        const verdict = pick[about];
+        if (verdict) await api.sendFeedback(net.id, { about, verdict, note: note.trim() });
+      }
+      setPick({}); setNote(""); setSaved(true); load();
+    } finally { setBusy(false); }
+  }
+  const row = (about: FeedbackIn["about"], title: string) => (
+    <div>
+      <div className="text-[13px] text-muted">{title}</div>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {VERDICTS.filter((v) => v.about === about).map((v) => {
+          const on = pick[about] === v.verdict; const I = v.icon;
+          return (
+            <button key={v.verdict} type="button" aria-pressed={on} onClick={() => { setSaved(false); setPick((p) => ({ ...p, [about]: on ? undefined : v.verdict })); }}
+              className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:border-line-strong hover:text-fg"}`}>
+              <I className="size-3.5" /> {v.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+  return (
+    <div className="mt-5 border-t border-line pt-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Your team&apos;s review</h3>
+      <div className="mt-3 flex flex-col gap-3">
+        {net.brief && row("brief", "Is this brief accurate?")}
+        {row("priority", `Is ${net.priority.tier} at #${net.priority.rank} the right priority?`)}
+        <textarea value={note} onChange={(e) => { setNote(e.target.value); setSaved(false); }} maxLength={500} rows={2}
+          placeholder="Optional note for your team" aria-label="Note"
+          className="w-full resize-none rounded-lg border border-line px-3 py-2 text-[13px] outline-none focus:border-accent" />
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={send} disabled={busy || (!pick.brief && !pick.priority)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-fg px-3 py-1.5 text-sm font-medium text-bg disabled:opacity-40">
+            {busy && <Loader2 className="size-4 animate-spin" />} Save review
+          </button>
+          {saved && <span className="flex items-center gap-1 text-xs text-good"><Check className="size-3.5" /> Saved to the audit trail</span>}
+        </div>
+      </div>
+      {items.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {items.slice(-3).reverse().map((a) => (
+            <li key={a.id} className="rounded-lg bg-bg-raised px-3 py-2 text-xs text-muted">
+              {a.summary.replace(`${team.name}: `, "")}
+              <span className="ml-1 text-faint">· {new Date(a.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 text-[11px] text-faint">Only {team.name} can see these reviews.</p>
+    </div>
+  );
+}
+
 const statusText: Record<Case["status"], string> = {
   new: "New", processing: "Processing", linked: "Linked", standalone: "Standalone",
   needs_review: "Needs review", flagged_input: "Flagged",
@@ -563,6 +726,7 @@ const statusText: Record<Case["status"], string> = {
 
 function flagText(f: string) {
   if (f === "injection_attempt") return "Tried to trick the system";
+  if (f === "repeat_reporter") return "Same reporter as an earlier report";
   if (f.startsWith("name_lookalike")) return "Similar name";
   return f.replace(/_/g, " ");
 }

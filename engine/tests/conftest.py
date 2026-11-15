@@ -8,6 +8,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'test.db'}"
 os.environ["RASTRO_SNAPSHOT"] = str(_TMP / "prebaked.json")
 os.environ["RASTRO_OFFLINE"] = "1"          # tests never spend SERV credit
 os.environ["DEMO_KEY"] = "test-key"
+os.environ["ANALYST_TEAMS"] = "demo|Demo Bank fraud team|demo;north|North Bank fraud team|north-pass"
 
 ENGINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ENGINE))
@@ -42,3 +43,9 @@ def fresh(baked):
     from app.main import restore_snapshot
     assert restore_snapshot()
     return baked
+
+
+def login(client, team="demo", password="demo"):
+    r = client.post("/auth/login", json={"team": team, "password": password})
+    assert r.status_code == 200, r.text
+    return client

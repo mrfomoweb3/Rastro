@@ -14,6 +14,7 @@ const FIELDS: { key: string; label: string }[] = [
   { key: "paid_at", label: "When you paid" },
   { key: "channel", label: "How they reached you" },
   { key: "receiving account", label: "Account you paid" },
+  { key: "contact", label: "How your bank can reach you" },
 ];
 
 export function ReportChat() {
@@ -57,7 +58,7 @@ export function ReportChat() {
     (async () => {
       for (let i = 0; i < 30 && !stop; i++) {
         try {
-          const c = await api.case(id);
+          const c = await api.case(id, sid ?? undefined);
           if (c.packet_url || c.status === "linked" || c.status === "standalone" || c.status === "needs_review") {
             setPacketReady(true);
             return;
@@ -68,7 +69,7 @@ export function ReportChat() {
       setPacketReady(true);
     })();
     return () => { stop = true; };
-  }, [reply?.done, reply?.case_id]);
+  }, [reply?.done, reply?.case_id, sid]);
 
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
@@ -97,6 +98,7 @@ export function ReportChat() {
     amount: draft?.amount ? moneyExact(draft.amount) : undefined,
     paid_at: draft?.urgency ? `${Math.round(draft.urgency.hours_since_payment)} h ago` : undefined,
     channel: draft?.channel,
+    contact: "Kept private",
   };
   const done = !!reply?.done;
 
@@ -190,7 +192,7 @@ export function ReportChat() {
               {packetReady && reply?.case_id && (
                 <>
                   <a
-                    href={api.packetUrl(reply.case_id)}
+                    href={api.packetUrl(reply.case_id, sid ?? undefined)}
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-fg px-5 py-2.5 text-sm font-medium text-bg transition-transform hover:-translate-y-px"
                   >
                     <Download className="size-4" /> Download the PDF packet

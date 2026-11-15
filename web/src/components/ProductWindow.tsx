@@ -15,7 +15,7 @@ export function ProductWindow() {
   const [pick, setPick] = useState<string | null>(null);
 
   useEffect(() => {
-    api.networks().then((l) => {
+    api.preview().then((l) => {
       l.sort((a, b) => a.priority.rank - b.priority.rank);
       setNets(l);
       setPick(l.slice().sort((a, b) => b.metrics.case_count - a.metrics.case_count)[0]?.id ?? null);

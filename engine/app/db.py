@@ -9,7 +9,8 @@ from contextvars import ContextVar
 from typing import Any, Dict, Iterable, List, Optional
 
 from sqlalchemy import (JSON, Column, Float, Integer, MetaData, String, Table, Text,
-                        create_engine, delete, func, insert, select, update)
+                        create_engine, delete, func, insert, or_, select, update)
+from sqlalchemy import inspect as sqlalchemy_inspect
 
 from app import ENGINE_DIR
 
@@ -68,6 +69,7 @@ audit = Table("audit", md,
               Column("seq", Integer, primary_key=True, autoincrement=True),
               Column("object_id", String(16), index=True),
               Column("cost_usd", Float, default=0.0),
+              Column("team", String(40), index=True),  # set only on a team's private rows (feedback, export)
               Column("data", JSON, nullable=False))
 events = Table("events", md,
                Column("id", Integer, primary_key=True, autoincrement=True),
@@ -84,6 +86,10 @@ TABLES = [cases, entities, networks, audit, events, sessions, meta]
 
 def init() -> None:
     md.create_all(engine)
+    with engine.begin() as cx:  # databases made before the team column existed
+        cols = {c["name"] for c in sqlalchemy_inspect(cx).get_columns("audit")}
+        if "team" not in cols:
+            cx.exec_driver_sql("ALTER TABLE audit ADD COLUMN team VARCHAR(40)")
 
 
 def wipe() -> None:
@@ -222,22 +228,45 @@ def list_networks(limit: Optional[int] = None) -> List[dict]:
 
 
 # ---------- audit ----------
-def add_audit(ev: dict) -> dict:
+def add_audit(ev: dict, team: Optional[str] = None) -> dict:
     with LOCK, engine.begin() as cx:
         check_alive()
-        seq = cx.execute(insert(audit).values(object_id=ev["object_id"], cost_usd=ev["cost_usd"], data={})
+        seq = cx.execute(insert(audit).values(object_id=ev["object_id"], cost_usd=ev["cost_usd"], team=team, data={})
                          ).inserted_primary_key[0]
         ev = {**ev, "id": f"A-{seq:06d}"}
         cx.execute(update(audit).where(audit.c.seq == seq).values(data=ev))
     return ev
 
 
-def list_audit(object_id: Optional[str] = None, limit: int = 2000) -> List[dict]:
+def list_audit(object_id: Optional[str] = None, limit: int = 2000, team: Optional[str] = None,
+               only_team: bool = False) -> List[dict]:
+    """Shared rows plus the given team's private rows. With only_team, just that team's rows."""
     q = select(audit.c.data).order_by(audit.c.seq.asc())
     if object_id:
         q = q.where(audit.c.object_id == object_id)
+    if only_team:
+        q = q.where(audit.c.team == team)
+    else:
+        q = q.where(or_(audit.c.team.is_(None), audit.c.team == team))
     with engine.connect() as cx:
         return [r[0] for r in cx.execute(q.limit(limit))]
+
+
+def team_audit_rows() -> List[dict]:
+    """Every team's private rows (feedback, exports), oldest first."""
+    with engine.connect() as cx:
+        return [{"team": r[0], "data": r[1]} for r in
+                cx.execute(select(audit.c.team, audit.c.data).where(audit.c.team.is_not(None)).order_by(audit.c.seq))]
+
+
+def restore_team_audit_rows(rows: List[dict]) -> None:
+    """Put team rows back after the data is replaced. They get new sequence numbers; their
+    ids and timestamps stay as they were."""
+    with LOCK, engine.begin() as cx:
+        for r in rows:
+            d = r["data"]
+            cx.execute(insert(audit).values(object_id=d["object_id"], cost_usd=d.get("cost_usd", 0.0), team=r["team"],
+                                            data=d))
 
 
 def total_cost() -> float:

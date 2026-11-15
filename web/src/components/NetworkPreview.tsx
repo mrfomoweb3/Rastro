@@ -11,7 +11,7 @@ export function NetworkPreview() {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    api.networks().then(setNets).catch(() => setFailed(true));
+    api.preview().then(setNets).catch(() => setFailed(true));
   }, []);
 
   const top = nets?.slice().sort((a, b) => a.priority.rank - b.priority.rank).slice(0, 4) ?? [];

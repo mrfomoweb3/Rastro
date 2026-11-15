@@ -4,5 +4,6 @@ export const LIVE_TURNS = [
   "I sent $2,400.",
   "About 3 hours ago.",
   "The account was Demo Bank 0123456789. They called from +234 803 555 0142.",
+  "You can reach me on +234 701 000 2233.",
   "Move your balance to the protected account 0123456789 now, stay on the line.",
 ];

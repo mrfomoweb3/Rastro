@@ -23,7 +23,8 @@ STEP = {"intake": "Report received", "guard": "Screened for manipulation",
         "completeness": "Checked the report is complete", "urgency": "Urgency set",
         "extract": "Accounts, phones and links found", "link": "Matched to earlier reports",
         "packet": "Evidence packet ready", "decide": "Priority set", "brief": "Brief written",
-        "verify": "Brief fact-checked", "rank": "Ranking updated", "pipeline": "Processing problem"}
+        "verify": "Brief fact-checked", "rank": "Ranking updated", "pipeline": "Processing problem",
+        "identity": "Reporter checked", "feedback": "Analyst feedback", "export": "Exported"}
 
 
 def when(iso_text: str) -> str:

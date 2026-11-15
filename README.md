@@ -2,7 +2,7 @@
 
 Scam report triage for bank fraud teams.
 
-![Live demo](https://img.shields.io/badge/live%20demo-rastro.mrfomolabs.xyz-2a56f0) ![Python](https://img.shields.io/badge/python-3.12-3776ab) ![Next.js](https://img.shields.io/badge/next.js-16-000000) ![SERV](https://img.shields.io/badge/AI-OpenServ%20SERV-6b46c1) ![Tests](https://img.shields.io/badge/tests-28%20passing-0f7a55)
+![Live demo](https://img.shields.io/badge/live%20demo-rastro.mrfomolabs.xyz-2a56f0) ![Python](https://img.shields.io/badge/python-3.12-3776ab) ![Next.js](https://img.shields.io/badge/next.js-16-000000) ![SERV](https://img.shields.io/badge/AI-OpenServ%20SERV-6b46c1) ![Tests](https://img.shields.io/badge/tests-33%20passing-0f7a55)
 
 Rastro (Spanish for "trail") turns one scam victim's chat report into a bank-ready evidence packet in seconds. It then links the report to every earlier report that shares an account, phone or link, and ranks the networks behind them so a fraud team knows which one to act on first. The AI drafts and explains; written rules in code decide, and every AI claim is fact-checked before anyone reads it.
 
@@ -58,26 +58,34 @@ A victim answers a short chat. Rastro extracts the facts, builds a one-page PDF 
 - **Fact-checked briefs.** Every claim must point to real links in the graph, every number must match the data, and no names or accusations are allowed. A failed AI draft is replaced by a template brief built only from code facts.
 - **Prompt-injection safe.** Text in a report that tries to instruct the system is flagged, kept as evidence and cannot change the ranking. A test proves it.
 - **Full audit trail.** Every step records who did it (rules, SERV, shadow agent, or a person), the model, cost and time.
+- **Team logins.** Each fraud team signs in to its own account. Its reviews and exports are private to the team.
+- **Analyst feedback.** Analysts mark a brief accurate or not and say whether the priority is right. Each review is saved to the audit trail.
+- **Repeat-reporter check.** The victim's own phone or email is kept only as a one-way code. The same person filing twice counts as one victim, and the network goes to a person for review.
+- **Case-management export.** Any network downloads as CSV (one row per report) or as a JSON case file with the brief, the reports and the audit trail.
 
 ## How to test
 
-No login, wallet or key is needed. The data is synthetic.
+No wallet or API key is needed. The data is synthetic.
+
+**Demo login:** on the sign-in screen press **Continue as the demo team** (team *Demo Bank fraud team*, password `demo`).
 
 **Try this** on https://rastro.mrfomolabs.xyz/console?demo=1
 
-1. Look at the **Priority queue**. Network **N-007** (Mule network, 39 reports) is at **#6**, priority P2.
+1. Sign in as the demo team. Look at the **Priority queue**. Network **N-007** (Mule network, 39 reports) is at **#6**, priority P2.
 2. In the **Live demo** panel, press **Play the demo**. It resets the data, then a scripted victim reports a $2,400 bank-impersonation scam paid 3 hours ago. You see the chat happen.
 3. Within about 5 seconds of the chat ending, N-007 moves **from #6 to #1** and becomes **P1**. The **Why it's ranked here** list explains it, including a line if SERV suggested a different rating.
 4. Within about 15–40 seconds, the **Analyst brief** updates and shows **Fact-checked**.
 5. Open the **Reports** tab and download the PDF for the new report marked **New**.
 6. Open the **Activity** tab to see each step and whether rules, SERV or the shadow agent did it.
+7. Under **Your team's review**, mark the brief **Accurate** and the priority **Right**, add a note and press **Save review**. It appears under the panel and in the Activity tab as an Analyst step.
+8. Press **Export CSV** or **Export case file** in the network header to download it for a case-management system.
 
 Other things to check:
 
 - **Injection attempt:** report `C-0450` contains text that tries to give the system orders. Find its network in the queue: the report is flagged and the network keeps its priority.
 - **Names never merge networks:** reports `C-0300` and `C-0301` ("John Okafor" and "Jon Okafor") share only a similar name and stay separate.
 - **Needs a person:** network **N-011** is held for review because its scam pattern is unclear.
-- **File your own report:** https://rastro.mrfomolabs.xyz/report
+- **File your own report:** https://rastro.mrfomolabs.xyz/report. It asks for your own phone or email last. File a second report with the same contact: it is flagged *Same reporter as an earlier report*, counts as the same victim, and its network goes to review.
 
 Only one person should run the live demo at a time, because the demo data is shared.
 
@@ -88,7 +96,7 @@ cd engine
 .venv/bin/python -m pytest -q
 ```
 
-Passing looks like `28 passed`. The tests run offline: the SERV path is tested with a fake model, so they spend no credit.
+Passing looks like `33 passed`. The tests run offline: the SERV path is tested with a fake model, so they spend no credit.
 
 ## Architecture
 
@@ -96,7 +104,7 @@ Passing looks like `28 passed`. The tests run offline: the SERV path is tested w
 graph LR
   V["Victim (browser)"] -->|chat| W["Next.js web app (Vercel)"]
   A["Analyst (browser)"] -->|console| W
-  W -->|"/api/rastro/* proxy"| E["FastAPI engine (Fly.io)"]
+  W -->|"/api/rastro/* proxy + session cookie"| E["FastAPI engine (Fly.io)"]
   W -->|"/api/reset + X-Demo-Key"| E
   E -->|"intake, extract, brief"| S["SERV gpt-5.4-mini + PromptGuard + shadow agent"]
   E -->|"decide"| K["SERV Kronos multipath"]
@@ -108,7 +116,8 @@ graph LR
   E -->|"one-page PDF"| P["reportlab packet"]
 ```
 
-- **Web app** (`web/`): landing page, victim chat and analyst console. The browser only talks to this app, which forwards `/api/rastro/*` to the engine, so there is no CORS setup. The demo reset key stays on the server.
+- **Web app** (`web/`): landing page, victim chat and analyst console. The browser only talks to this app, which forwards `/api/rastro/*` to the engine with the analyst's session cookie, so there is no CORS setup. The demo reset key stays on the server.
+- **Auth** (`engine/app/auth.py`): one login per team from `ANALYST_TEAMS`. A session is an HMAC-signed token in an HTTP-only cookie. Reports and networks need a session; victims reach only their own report, by chat session.
 - **Engine** (`engine/app/main.py`): FastAPI API. Intake runs synchronously; each finished report runs the case graph in a background thread.
 - **LangGraph graphs** (`engine/graph/`): the case graph (guard, completeness, urgency, extract, link, structure, packet, networks) and the network graphs (decide, then brief and verify).
 - **Code rulebook** (`engine/rules/`): urgency U1–U4, network rules R0–R7, the score formula, linking, normalising and the injection guard. These are the source of every number.
@@ -192,6 +201,9 @@ Engine (`.env` at the repo root, or Fly secrets):
 | `PRICE_IN_PER_M`, `PRICE_OUT_PER_M` | USD per 1M tokens for cost tracking. Placeholders are used when empty. | No |
 | `ALLOWED_ORIGINS` | CORS origins, only needed if a browser calls the engine directly. | No |
 | `RASTRO_OFFLINE` | `1` forces offline mode even with a key (tests use this). | No |
+| `ANALYST_TEAMS` | Team logins: `slug\|Team name\|password` entries separated by `;`. Default: one demo team (`demo` / `demo`). | Yes, in production |
+| `AUTH_SECRET` | Signs analyst session tokens. Falls back to `DEMO_KEY`. | Yes, in production |
+| `REPORTER_SALT` | Salt for the one-way reporter code. Falls back to `AUTH_SECRET`. | No |
 
 Web (`web/.env.local`, or Vercel environment variables):
 
@@ -241,7 +253,7 @@ Rastro/
 │   ├── rules/           rulebook.md (SERV system prompt), urgency, R0–R7 + score, linking, injection guard
 │   ├── scripts/         gen_seed, prebake, cost_probe, export_examples, refresh_wording
 │   ├── data/            seed_cases.json and prebaked.json (the demo snapshot)
-│   └── tests/           28 tests: rules, the live demo end to end, the SERV path
+│   └── tests/           33 tests: rules, the live demo end to end, the SERV path, logins, exports
 ├── web/
 │   └── src/             Next.js app: landing (/), report chat (/report), console (/console)
 ├── docs/                Screenshots
@@ -269,11 +281,18 @@ Web: set `RASTRO_API_URL=https://rastro-engine.fly.dev` and the same `DEMO_KEY` 
 
 ## Usage / API
 
-All endpoints return contract JSON (`contract/schema.py`). Through the web app they live under `/api/rastro/`.
+All endpoints return contract JSON (`contract/schema.py`). Through the web app they live under `/api/rastro/`. Reports, networks, the audit trail and events need an analyst session; a victim reads their own report and packet with `?session=<chat session id>`.
 
 | Method | Path | What it does |
 |---|---|---|
 | GET | `/health` | Engine status, whether SERV is on, spend so far |
+| POST | `/auth/login` | Sign in `{ "team": "demo", "password": "demo" }`; sets the session cookie |
+| GET | `/auth/me`, `/auth/teams` | Signed-in team; team names for the login screen |
+| POST | `/auth/logout` | Sign out |
+| GET | `/public/networks` | Open preview of the top 8 networks (landing page) |
+| POST | `/networks/{id}/feedback` | Team review `{ "about": "brief" \| "priority", "verdict": "...", "note": "..." }` |
+| GET | `/networks/{id}/feedback` | Your team's reviews of a network |
+| GET | `/networks/{id}/export.csv`, `/export.json` | Case-management export |
 | POST | `/intake/sessions` | Start a victim chat |
 | POST | `/intake/sessions/{sid}/messages` | Send one message `{ "text": "..." }` |
 | GET | `/cases`, `/cases/{id}` | Reports |
@@ -285,7 +304,15 @@ All endpoints return contract JSON (`contract/schema.py`). Through the web app t
 | GET | `/events?after=...` | Live events (case created, linked, re-ranked, brief updated) |
 | POST | `/demo/reset` | Restore the demo data; needs the `X-Demo-Key` header |
 
-Example: start a chat and send one message.
+Example: sign in, then export a network.
+
+```bash
+curl -s -c jar.txt -H "content-type: application/json" -d '{"team":"demo","password":"demo"}' \
+  https://rastro.mrfomolabs.xyz/api/rastro/auth/login
+curl -s -b jar.txt -o N-007.csv https://rastro.mrfomolabs.xyz/api/rastro/networks/N-007/export.csv
+```
+
+Start a chat and send one message (no login needed):
 
 ```bash
 curl -s -X POST https://rastro-engine.fly.dev/intake/sessions
@@ -312,14 +339,15 @@ How code keeps the AI honest:
 5. **Victim text is data.** It is sent inside `<evidence>` tags, flagged if it tries to instruct the system, and can only add details that literally appear in it.
 6. **Fallbacks are labelled.** Without SERV, the audit log records `actor: "code"` and `model: "offline-fallback"`, so a fallback is never shown as an AI step.
 
-**Cost and speed, measured on the live deployment (15 Nov 2026):** about **$0.003 of SERV per live report** (9 calls) at the placeholder prices in `engine/app/pricing.py`. After the victim's last message: packet ready in 2–7 s, queue re-ranked in 4–14 s, brief ready in 15–40 s. Every SERV call has a 12–45 s time limit.
+**Cost and speed, measured on the live deployment (15 Nov 2026):** about **$0.003 of SERV per live report** (9 calls) at the old placeholder prices. **Prices:** SERV does not publish its own per-token rates, so `engine/app/pricing.py` now uses OpenAI's list price for the base model `gpt-5.4-mini` ($0.75 input, $4.50 output per 1M tokens, [source](https://developers.openai.com/api/docs/models/gpt-5.4-mini)); multipath and Kronos are charged by the tokens SERV reports. At those prices a live report costs about $0.009 (see `/stats`). After the victim's last message: packet ready in 2–7 s, queue re-ranked in 4–14 s, brief ready in 15–40 s. Every SERV call has a 12–45 s time limit.
 
 ## Known limits
 
-- Reports are not verified, and every report counts as a new victim, so one person filing many reports could push an account up the queue. A real deployment needs identity checks on intake.
-- The console has no login. It is a demo on synthetic data.
-- The demo data is shared: anyone can press reset, and two people running the live demo at once will see each other's report.
-- Prices in `engine/app/pricing.py` are placeholders until checked against the SERV catalog.
+- The repeat-reporter check matches a victim by the phone or email they give. It is not a verified identity: no one-time code is sent, so someone using a new number each time is not caught. A bank deployment would confirm the contact with an SMS or email code.
+- Reports and networks are shared intelligence across teams; what is private to a team is its reviews and exports. Splitting reports per bank is a deployment choice that is not built.
+- The demo team's password is public (`demo`), so anyone can sign in and press reset. Two people running the live demo at once will see each other's report.
+- Exports are files a case-management system can import (CSV, JSON). There is no direct connection to a specific vendor's system.
+- Prices use OpenAI's list price for the base model until SERV publishes its own.
 
 ## Roadmap
 
@@ -330,11 +358,14 @@ How code keeps the AI honest:
 - [x] One-page PDF evidence packet
 - [x] Analyst console with link map, brief and audit trail
 - [x] Live deployment on Fly.io and Vercel with a SERV spending cap
-- [ ] Real SERV prices in the cost table
-- [ ] Analyst login and per-team data
-- [ ] Victim identity checks so one person cannot inflate a network
-- [ ] Analyst feedback on briefs and rankings, stored in the audit trail
-- [ ] Export to bank case-management systems
+- [x] Real prices in the cost table (OpenAI list price for `gpt-5.4-mini`; SERV publishes no own rate)
+- [x] Analyst login per team, with team-private reviews and exports
+- [x] Repeat-reporter check so one person cannot inflate a network
+- [x] Analyst feedback on briefs and rankings, stored in the audit trail
+- [x] Export for bank case-management systems (CSV and JSON case file)
+- [ ] One-time code to verify the reporter's phone or email
+- [ ] Reports split per bank, not only reviews and exports
+- [ ] Direct connectors for specific case-management vendors
 
 ## Contributing
 
@@ -351,7 +382,7 @@ _Add a license_
 
 ## Team / Acknowledgements
 
-- [mrfomoweb3](https://github.com/mrfomoweb3): _add role_
-- _add teammate name and link_: _add role_
+- [mrfomoweb3](https://github.com/mrfomoweb3)
+- [benita2001](https://github.com/benita2001)
 - Built for the **OpenServ SERV Hackathon, Edition 02**, on [SERV Reasoning](https://docs.openserv.ai).
 - Libraries: FastAPI, LangGraph, networkx, RapidFuzz, reportlab, Next.js, Tailwind CSS, Framer Motion, lucide-react. UI pieces adapted from [EasyUI](https://easyui.site).

@@ -6,8 +6,10 @@ created and the case graph runs in a background thread.
 """
 from __future__ import annotations
 
+import hashlib
 import json
-import random
+import os
+import re
 import threading
 import uuid
 
@@ -26,8 +28,34 @@ QUESTIONS = {
     "channel": "How did they first contact you — WhatsApp, SMS, email, a phone call, social media or a website?",
     "receiving account": "Where did the money go? Please share the receiving account number and bank, or the phone "
                          "number, link, email or wallet they gave you.",
+    "contact": "One more thing: what phone number or email can your bank reach you on? We keep it only as a one-way "
+               "code, so we can tell when the same person reports twice. Nobody sees it.",
     "messages": "If you still have the messages they sent, paste them here. Or type \"skip\".",
 }
+CONTACT_RETRY = ("I couldn't read a phone number or email in that. Please type the phone number (with country code) "
+                 "or the email address your bank has for you.")
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_PHONE = re.compile(r"\+?\d[\d\s().-]{6,}\d")
+
+
+def reporter_id(contact: str) -> str:
+    """One-way code for the victim's own phone or email. Same contact, same code."""
+    salt = os.environ.get("REPORTER_SALT") or os.environ.get("AUTH_SECRET") or os.environ.get("DEMO_KEY") or "rastro"
+    return hashlib.sha256(f"{salt}|{contact}".encode()).hexdigest()
+
+
+def read_contact(text: str):
+    """(normalised contact, masked hint) from the victim's answer, or (None, None)."""
+    m = _EMAIL.search(text)
+    if m:
+        e = m.group(0).lower()
+        return e, f"email {e[0]}…@{e.split('@')[1]}"
+    m = _PHONE.search(text)
+    if m:
+        n = normalize("phone", m.group(0))
+        if n and len(re.sub(r"\D", "", n)) >= 7:
+            return n, f"phone …{n[-4:]}"
+    return None, None
 
 INTAKE_SYSTEM = (
     "You are Rastro's intake assistant, talking to a scam victim. Be calm, kind and short (max 2 sentences). "
@@ -42,13 +70,16 @@ INTAKE_SYSTEM = (
 def _new_session() -> dict:
     return {"id": "S-" + uuid.uuid4().hex[:12], "turns": [], "amount": None, "paid_at": None, "channel": None,
             "narrative": [], "scam_messages": [], "entities": [], "flags": [], "asked": "story",
-            "messages_asked": False, "done": False, "case_id": None, "cost_usd": 0.0}
+            "messages_asked": False, "done": False, "case_id": None, "cost_usd": 0.0,
+            "reporter": None, "reporter_hint": None}
 
 
 def missing(s: dict) -> list:
     out = [k for k in ("amount", "paid_at", "channel") if not s.get(k)]
     if not any(e["kind"] in STRONG_KINDS for e in s["entities"]):
         out.append("receiving account")
+    if not s.get("reporter"):
+        out.append("contact")
     return out
 
 
@@ -102,6 +133,19 @@ def message(sid: str, text: str) -> dict | None:
     if scan([text]) and "injection_attempt" not in s["flags"]:
         s["flags"].append("injection_attempt")
 
+    # The victim's own contact: kept only as a one-way code, never as a linkable detail, and
+    # never sent to SERV, so it can never join a scam network.
+    if s["asked"] == "contact":
+        s["turns"][-1]["text"] = "[contact details withheld]"
+        contact, hint = read_contact(text)
+        if contact is None:
+            reply = CONTACT_RETRY
+            s["turns"].append({"role": "agent", "text": reply})
+            db.put_session(s)
+            return _reply(s, reply)
+        s["reporter"], s["reporter_hint"] = reporter_id(contact), hint
+        return _finish_turn(s, None)
+
     # where does this text belong?
     if s["asked"] == "messages":
         if text.lower() not in ("skip", "no", "none", "n/a"):
@@ -145,6 +189,10 @@ def message(sid: str, text: str) -> dict | None:
         except Exception:  # noqa: BLE001
             reply = None
 
+    return _finish_turn(s, reply)
+
+
+def _finish_turn(s: dict, reply):
     miss = missing(s)
     if miss:
         s["asked"] = miss[0]
@@ -164,12 +212,10 @@ def message(sid: str, text: str) -> dict | None:
     return _reply(s, reply)
 
 
-def _alias() -> str:
-    used = {c["victim_alias"] for c in db.list_cases()}
-    while True:
-        a = f"Victim {random.randint(1000, 9999)}"
-        if a not in used:
-            return a
+def _alias(reporter: str) -> str:
+    """The same reporter always gets the same alias, so the victim counts and rule R2
+    count a person once, however many reports they file."""
+    return f"Victim {reporter[:6]}"
 
 
 def _create_case(s: dict) -> str:
@@ -177,20 +223,28 @@ def _create_case(s: dict) -> str:
         epoch = db.EPOCH  # the data this report belongs to; a demo reset ends its run
         cid = db.next_case_id()
         text = " ".join(s["narrative"])
+        earlier = [i for i, m in db.all_case_meta().items() if m.get("reporter") == s["reporter"]]
+        flags = list(s["flags"]) + (["repeat_reporter"] if earlier else [])
         case = {
             "id": cid, "source": "live", "reported_at": iso(utcnow()), "paid_at": s["paid_at"],
-            "amount": float(s["amount"]), "channel": s["channel"], "victim_alias": _alias(),
+            "amount": float(s["amount"]), "channel": s["channel"], "victim_alias": _alias(s["reporter"]),
             "narrative": text, "scam_messages": s["scam_messages"], "entities": [],
             "urgency": {"tier": "P4", "hours_since_payment": 0.0, "rule_id": "pending"},
-            "scam_type": guess_scam_type(text), "status": "processing", "flags": list(s["flags"]),
+            "scam_type": guess_scam_type(text), "status": "processing", "flags": flags,
             "network_id": None, "packet_url": None,
         }
-        db.put_case(case, meta_={"session_id": s["id"]})
+        db.put_case(case, meta_={"session_id": s["id"], "reporter": s["reporter"], "reporter_hint": s["reporter_hint"]})
     for m in s.get("serv_calls", []):
         audit("case", cid, "intake", "serv", "Intake chat turn (PromptGuard on).", [], m["model"], m["cost_usd"],
               m["latency_ms"])
     audit("case", cid, "intake", "code", f"Report filed after {len([t for t in s['turns'] if t['role'] == 'victim'])} "
           "victim messages.", ["C-required"])
+    if earlier:
+        audit("case", cid, "identity", "code", f"Same reporter as {', '.join(sorted(earlier)[:5])}. Counted as one victim; "
+              "the network goes to a person for review.", ["I-repeat"])
+    else:
+        audit("case", cid, "identity", "code", f"Reporter contact on file ({s['reporter_hint']}). First report from "
+              "this person.", ["I-repeat"])
     emit("case_created", cid, f"New report {cid}: ${case['amount']:,.0f} via {case['channel']}")
     raw = [dict(e) for e in s["entities"]]
     threading.Thread(target=_run_safe, args=(case, raw, epoch), daemon=True).start()
