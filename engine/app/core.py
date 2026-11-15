@@ -269,13 +269,27 @@ def _brief_from_model(raw: dict, net: dict) -> dict:
         ids += [str(x) for x in (w.get("edge_ids") or [])]
         text = next((w[k] for k in ("claim", "text", "reason", "explanation", "description", "statement")
                      if isinstance(w.get(k), str) and w[k].strip()), "")
+        if not text.strip() and len(w.get("detail_ids") or []) == 1 and str(w["detail_ids"][0]) in by_id:
+            text = _claim_for(by_id[str(w["detail_ids"][0])])  # the model gave the link but no words
         why.append({"claim": text.strip()[:400], "edge_ids": list(dict.fromkeys(ids))})
     def strs(x) -> List[str]:
         return [str(i)[:300] for i in x if isinstance(i, str) and i.strip()][:6] if isinstance(x, list) else []
 
-    return {"summary": str(raw.get("summary") or "")[:1200], "why_linked": why[:6],
+    summary = next((raw[k] for k in ("summary", "overview", "brief", "text")
+                    if isinstance(raw.get(k), str) and raw[k].strip()), "")
+    return {"summary": summary[:1200], "why_linked": why[:6],
             "gaps": strs(raw.get("gaps")), "next_steps": strs(raw.get("next_steps")),
             "checked": False, "check_notes": []}
+
+
+_KIND_WORDS = {"account": "paid into the same receiving account", "phone": "were contacted from the same phone number",
+               "url": "were sent to the same website", "email": "dealt with the same email address",
+               "wallet": "paid into the same crypto wallet"}
+
+
+def _claim_for(s: dict) -> str:
+    return (f"{s['report_count']} reports {_KIND_WORDS.get(s['kind'], 'share the same detail')} "
+            f"({s['label'].replace('acct ', 'account ')}).")
 
 
 def _template_brief(net: dict, cases: List[dict]) -> dict:
@@ -292,12 +306,7 @@ def _template_brief(net: dict, cases: List[dict]) -> dict:
     if p1:
         summary += (f" {len(p1)} {'report is' if len(p1) == 1 else 'reports are'} inside the 24-hour window"
                     " where a bank hold may still be possible.")
-    kind_words = {"account": "paid into the same receiving account", "phone": "were contacted from the same phone number",
-                  "url": "were sent to the same website", "email": "dealt with the same email address",
-                  "wallet": "paid into the same crypto wallet"}
-    why = [{"claim": f"{s['report_count']} reports {kind_words[s['kind']]} "
-                     f"({s['label'].replace('acct ', 'account ')}).", "edge_ids": s["edge_ids"]}
-           for s in strong[:5]]
+    why = [{"claim": _claim_for(s), "edge_ids": s["edge_ids"]} for s in strong[:5]]
     gaps = ["Account-holder identity behind the shared details is not known to Rastro."]
     if any(s["kind"] == "account" for s in strong):
         gaps.append("No confirmation yet from the receiving bank on the account's other inflows.")

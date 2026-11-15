@@ -152,3 +152,23 @@ def test_bare_sentence_with_a_wrong_count_is_rejected(fresh, monkeypatch):
                              "why_linked": ["The account is shared across 12 reports."], "gaps": [], "next_steps": []})
     out = core.brief(net, cases)
     assert out["brief"]["summary"] == core._template_brief(net, cases)["summary"]
+
+
+def test_serv_cannot_overrule_r2_on_the_pattern():
+    code = priority.evaluate(dict(case_count=40, victim_count=40, total_loss=43780, cases_last_7d=7, p1_case_count=1,
+                                  max_victims_on_one_account=40, strong_edge_count=50,
+                                  scam_type_counts={"impersonation": 20, "investment": 20}))
+    out, notes = priority.reconcile({"typology": "mixed", "typology_confidence": 0.52, "tier": "P1",
+                                     "needs_review": False, "rule_ids": ["R2", "R3"], "reasons": []}, code)
+    assert out["typology"] == "mule_network" and out["typology_confidence"] >= priority.R5_CONF
+    assert not out["needs_review"] and any("R2 sets mule_network" in n for n in notes)
+
+
+def test_claim_with_a_link_but_no_words_gets_code_wording(fresh, monkeypatch):
+    net, cases = _hero(fresh)
+    acct = next(s for s in core.shared_entities(net) if s["kind"] == "account")
+    _fake_serv(monkeypatch, {"overview": f"{acct['report_count']} reports share one account.",
+                             "why_linked": [{"claim": "", "detail_ids": [acct["entity_id"]]}],
+                             "gaps": [], "next_steps": []})
+    out = core.verify(core.brief(net, cases), cases)
+    assert out["brief"]["checked"] and out["brief"]["why_linked"][0]["claim"].startswith(f"{acct['report_count']} reports paid")

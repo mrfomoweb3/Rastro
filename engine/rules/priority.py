@@ -146,12 +146,19 @@ def reconcile(model_out: dict, code_out: dict) -> tuple[dict, List[str]]:
     except (TypeError, ValueError):
         c = 0.0
     out["typology_confidence"] = max(0.0, min(1.0, c))
+    if out.get("typology") not in TYPOLOGY_FOR_SCAM.values() and out.get("typology") != "mule_network":
+        out["typology"] = code_out["typology"]; notes.append("SERV typology invalid; used code typology.")
+    if "R2" in code_out["rule_ids"] and (out.get("typology") != "mule_network" or out["typology_confidence"] < R5_CONF):
+        # R2 fixes the typology: one account shared by 3+ victims is a mule network. The
+        # model cannot overrule a rule that code has already established from the facts.
+        notes.append(f"SERV said {out.get('typology')} ({out['typology_confidence']}); R2 sets mule_network.")
+        out["typology"], out["typology_confidence"] = "mule_network", code_out["typology_confidence"]
+        if not code_out["needs_review"]:
+            out["needs_review"] = bool(model_out.get("needs_review"))
     if out["typology_confidence"] < R5_CONF:
         if not out.get("needs_review"):
             said.append("SERV was not confident about the scam pattern, so a person should review it.")
         out["needs_review"] = True
-    if out.get("typology") not in TYPOLOGY_FOR_SCAM.values() and out.get("typology") != "mule_network":
-        out["typology"] = code_out["typology"]; notes.append("SERV typology invalid; used code typology.")
     known = {f"R{i}" for i in range(8)}
     rid = {str(r) for r in (out.get("rule_ids") or []) if str(r) in known}
     missing = [r for r in code_out["rule_ids"] if r not in rid]
