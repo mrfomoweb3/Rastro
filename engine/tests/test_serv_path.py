@@ -172,3 +172,18 @@ def test_claim_with_a_link_but_no_words_gets_code_wording(fresh, monkeypatch):
                              "gaps": [], "next_steps": []})
     out = core.verify(core.brief(net, cases), cases)
     assert out["brief"]["checked"] and out["brief"]["why_linked"][0]["claim"].startswith(f"{acct['report_count']} reports paid")
+
+
+def test_rules_serv_cites_without_support_are_not_recorded():
+    code = priority.evaluate(dict(case_count=40, victim_count=40, total_loss=43780, cases_last_7d=7, p1_case_count=1,
+                                  max_victims_on_one_account=40, strong_edge_count=50,
+                                  scam_type_counts={"impersonation": 40}))
+    out, notes = priority.reconcile({"typology": "mule_network", "typology_confidence": 0.95, "tier": "P1",
+                                     "rule_ids": ["R1", "R2", "R3"], "reasons": []}, code)
+    assert "R1" not in out["rule_ids"] and set(code["rule_ids"]) <= set(out["rule_ids"])
+    assert any("R1" in n for n in notes)
+
+
+def test_extract_confidence_given_as_a_word():
+    from graph.case_graph import _confidence
+    assert _confidence("high") == 0.9 and _confidence("0.8") == 0.8 and _confidence(None) == 0.5 and _confidence(7) == 1.0

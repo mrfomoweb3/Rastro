@@ -164,7 +164,11 @@ def reconcile(model_out: dict, code_out: dict) -> tuple[dict, List[str]]:
     missing = [r for r in code_out["rule_ids"] if r not in rid]
     if missing:
         notes.append("Rules SERV did not cite: " + ", ".join(missing))
-    out["rule_ids"] = sorted(rid | set(code_out["rule_ids"]) | ({"R7"} if notes else set()))
+    extra = sorted(rid - set(code_out["rule_ids"]))
+    if extra:
+        notes.append("SERV cited rules the facts do not support: " + ", ".join(extra))
+    # The rules on record are the ones code can prove from the facts, plus R7 when it had to step in.
+    out["rule_ids"] = sorted(set(code_out["rule_ids"]) | ({"R7"} if notes else set()))
     out["serv_reasons"] = [str(x) for x in (model_out.get("reasons") or []) if isinstance(x, (str, int, float))][:4]
     out["reasons"] = list(code_out["reasons"]) + said
     return out, notes

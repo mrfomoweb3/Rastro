@@ -17,7 +17,7 @@ cp ../.env.example ../.env            # add SERV_API_KEY to use SERV; without it
 .venv/bin/python -m scripts.gen_seed  # 499 synthetic cases → data/seed_cases.json
 .venv/bin/python -m scripts.prebake   # full pipeline over the seed → data/prebaked.json
 .venv/bin/uvicorn app.main:app --reload --port 8000
-.venv/bin/python -m pytest -q         # 24 tests, including the demo checks and the SERV path (faked, no credit spent)
+.venv/bin/python -m pytest -q         # 28 tests, including the demo checks and the SERV path (faked, no credit spent)
 ```
 
 On first boot with an empty DB the API loads `data/prebaked.json`. `POST /demo/reset` with the header `X-Demo-Key: $DEMO_KEY` restores it. Every timestamp moves forward to "now", so hours-since-payment and last-7-days counts stay the same as when it was baked.
