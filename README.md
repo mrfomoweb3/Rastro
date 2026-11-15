@@ -67,7 +67,22 @@ A victim answers a short chat. Rastro extracts the facts, builds a one-page PDF 
 
 No wallet or API key is needed. The data is synthetic.
 
-**Demo login:** on the sign-in screen press **Continue as the demo team** (team *Demo Bank fraud team*, password `demo`).
+### How to sign in to the demo
+
+1. Open https://rastro.mrfomolabs.xyz/console?demo=1. The sign-in screen appears.
+2. Press **Continue as the demo team**. Or pick **Demo Bank fraud team**, type the password `demo` and press **Sign in**.
+
+![Sign-in screen](docs/login.png)
+
+3. The console opens. Your team name shows at the top right, next to the sign-out button.
+
+![Console after signing in](docs/console-signed-in.png)
+
+4. To leave a review, scroll to the bottom of the **Analyst brief** panel, under **Your team's review**. Only your team sees these reviews.
+
+![Team review panel](docs/review.png)
+
+The session lasts 12 hours. The sign-out button (arrow icon, top right) ends it.
 
 **Try this** on https://rastro.mrfomolabs.xyz/console?demo=1
 
@@ -363,9 +378,6 @@ How code keeps the AI honest:
 - [x] Repeat-reporter check so one person cannot inflate a network
 - [x] Analyst feedback on briefs and rankings, stored in the audit trail
 - [x] Export for bank case-management systems (CSV and JSON case file)
-- [ ] One-time code to verify the reporter's phone or email
-- [ ] Reports split per bank, not only reviews and exports
-- [ ] Direct connectors for specific case-management vendors
 
 ## Contributing
 
