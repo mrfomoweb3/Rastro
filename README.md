@@ -339,7 +339,7 @@ How code keeps the AI honest:
 5. **Victim text is data.** It is sent inside `<evidence>` tags, flagged if it tries to instruct the system, and can only add details that literally appear in it.
 6. **Fallbacks are labelled.** Without SERV, the audit log records `actor: "code"` and `model: "offline-fallback"`, so a fallback is never shown as an AI step.
 
-**Cost and speed, measured on the live deployment (15 Nov 2026):** about **$0.003 of SERV per live report** (9 calls) at the old placeholder prices. **Prices:** SERV does not publish its own per-token rates, so `engine/app/pricing.py` now uses OpenAI's list price for the base model `gpt-5.4-mini` ($0.75 input, $4.50 output per 1M tokens, [source](https://developers.openai.com/api/docs/models/gpt-5.4-mini)); multipath and Kronos are charged by the tokens SERV reports. At those prices a live report costs about $0.009 (see `/stats`). After the victim's last message: packet ready in 2–7 s, queue re-ranked in 4–14 s, brief ready in 15–40 s. Every SERV call has a 12–45 s time limit.
+**Cost and speed, measured on the live deployment (15 Nov 2026):** about **$0.003 of SERV per live report** (9 calls) at the old placeholder prices. **Prices:** SERV does not publish its own per-token rates, so `engine/app/pricing.py` now uses OpenAI's list price for the base model `gpt-5.4-mini` ($0.75 input, $4.50 output per 1M tokens, [source](https://developers.openai.com/api/docs/models/gpt-5.4-mini)); multipath and Kronos are charged by the tokens SERV reports. Measured at those prices: about **$0.006 per live report**. After the victim's last message: packet ready in 2–7 s, queue re-ranked in 4–14 s, brief ready in 15–40 s. Every SERV call has a 12–45 s time limit.
 
 ## Known limits
 
