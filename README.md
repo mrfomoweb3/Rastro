@@ -4,6 +4,8 @@
 
 OpenServ SERV Hackathon Edition 02, Open Track. **All data is synthetic.**
 
+**Live demo:** https://web-ten-liart-20.vercel.app · analyst console with the live demo panel: https://web-ten-liart-20.vercel.app/console?demo=1 · engine: https://rastro-engine.fly.dev/health
+
 Rastro never freezes money, never blocks an account and never says anyone is guilty. It ranks, packages and explains. Humans act.
 
 ## Run the engine locally
@@ -15,7 +17,7 @@ cp ../.env.example ../.env            # add SERV_API_KEY to use SERV; without it
 .venv/bin/python -m scripts.gen_seed  # 499 synthetic cases → data/seed_cases.json
 .venv/bin/python -m scripts.prebake   # full pipeline over the seed → data/prebaked.json
 .venv/bin/uvicorn app.main:app --reload --port 8000
-.venv/bin/python -m pytest -q         # 14 tests, including the demo checks
+.venv/bin/python -m pytest -q         # 24 tests, including the demo checks and the SERV path (faked, no credit spent)
 ```
 
 On first boot with an empty DB the API loads `data/prebaked.json`. `POST /demo/reset` with the header `X-Demo-Key: $DEMO_KEY` restores it. Every timestamp moves forward to "now", so hours-since-payment and last-7-days counts stay the same as when it was baked.
@@ -27,16 +29,16 @@ victim ──chat──► /intake (SERV + PromptGuard; code checks the fields)
                     │ done
                     ▼
          LangGraph case graph (one run per report, in the background)
-  guard → completeness → urgency → extract → link → networks → packet
-  code     code           code      SERV      code     │         code (PDF)
-                                                       ▼
-                     LangGraph network graph (per network the report touched)
-                     decide ───────────────► brief ─────────────► verify
-                     SERV kronos-multipath   SERV + shadow agent   code
-                     (checked against the    (edge ids, numbers,   (fails → needs_review)
-                      code rulebook, R7)      no names, no guilt)
-                                                       ▼
-                           re-rank all networks by score (code) → /events
+  guard → completeness → urgency → extract → link → structure → packet → networks
+  code     code           code      SERV      code     code        code (PDF)   │
+                                                                                ▼
+                     per network the report touched (LangGraph network graphs)
+                     decide ──────────► re-rank ──────► brief ─────────────► verify
+                     SERV kronos-        code (score)   SERV + shadow agent   code
+                     multipath, checked  → /events      fact-checked first;   (fails →
+                     by the code rules                  a failed draft is     needs_review)
+                     (R7)                               replaced by the
+                                                        template brief
 ```
 
 | Folder | What it holds |
@@ -74,7 +76,9 @@ Without `SERV_API_KEY` (or with `RASTRO_OFFLINE=1`), every SERV step uses a code
 ## Cost
 
 * Seed cases never call SERV (ground-truth entities). The pre-bake runs `decide` for all 21 networks and `brief` for the top 10 only, and stops spending past $3.
-* During the demo, only the live report and the networks it touches call SERV: about 6 intake turns, 1 `extract`, 1 `decide` and 1 `brief`.
+* During the demo, only the live report and the networks it touches call SERV: 5 intake turns, 1 `extract`, 1 `decide` and 1 `brief`.
+* **Measured on the live deployment (15 Nov):** about **$0.003 of SERV per live report** (9 calls), at the placeholder prices below. Timing after the victim's last message: packet ready in 3–4 s, queue re-ranked in 5–7 s, brief fact-checked in 18–28 s.
+* Every SERV call has a time limit (12–45 s) and no silent retry; a slow call falls back to code. `SERV_BUDGET_USD` (default $5) caps spend per server start; past it the engine runs code-only and `/health` says so.
 * `/stats` shows `total_cost_usd` and `avg_cost_per_case_usd` from the audit log. **Prices in `app/pricing.py` are placeholders.** Run `python -m scripts.cost_probe` with a key and fill in the real numbers before quoting a cost per case.
 * `analyst_hours_saved` assumes 0.75 h per hand-built packet and 2 h per hand-written network brief (`app/main.py`).
 
@@ -86,6 +90,20 @@ Without `SERV_API_KEY` (or with `RASTRO_OFFLINE=1`), every SERV step uses a code
 * `C-0300` / `C-0301` ("John Okafor" / "Jon Okafor") are linked by a weak name match only and stay standalone.
 * `N-011` is in `needs_review` under R5 (typology confidence 0.4).
 
-## Deploy (Railway + Supabase)
+## Deploy (Fly.io + Vercel)
 
-Deploy from the repo root (`railway.json` and `Procfile` start `uvicorn` inside `engine/`). Set `DATABASE_URL` to the Supabase Postgres URL, plus `SERV_API_KEY`, `DEMO_KEY` and `ALLOWED_ORIGINS`. Commit `engine/data/prebaked.json` so the first boot can seed itself. Any `*.vercel.app` origin is allowed by regex.
+**Engine on Fly.io**, from the repo root (`Dockerfile` + `fly.toml`):
+
+```bash
+fly secrets set SERV_API_KEY=... DEMO_KEY=...
+fly deploy --ha=false        # exactly ONE machine: the demo data lives in its SQLite file
+```
+
+**Web on Vercel**, project root `web/`, with `RASTRO_API_URL=https://rastro-engine.fly.dev` and the same `DEMO_KEY` (server side only). The engine address is read at build time, so redeploy after changing it.
+
+## Known limits
+
+* Reports are not verified, and every report counts as a new victim, so one person filing many reports could push an account up the queue. A real deployment needs identity checks on intake.
+* The console has no login. It is a demo on synthetic data.
+* The demo data is shared: anyone can press reset, and two people running the live demo at once will see each other's report.
+* Prices in `app/pricing.py` are placeholders until checked against the SERV catalog.

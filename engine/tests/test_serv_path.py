@@ -128,3 +128,27 @@ def test_packet_says_so_while_the_network_is_still_being_reviewed(fresh):
     assert render_packet("C-9997")[:4] == b"%PDF"
     db.put_case(live, meta_={"network_done": True})
     assert render_packet("C-9997")[:4] == b"%PDF"
+
+
+def test_bare_sentence_claims_are_matched_to_the_right_detail(fresh, monkeypatch):
+    net, cases = _hero(fresh)
+    strong = [s for s in core.shared_entities(net) if s["strength"] == "strong"]
+    acct = next(s for s in strong if s["kind"] == "account")
+    phone = next(s for s in strong if s["kind"] == "phone")
+    _fake_serv(monkeypatch, {
+        "summary": f"{acct['report_count']} reports share one account.",
+        "why_linked": [f"The account is shared across {acct['report_count']} reports.",
+                       f"One phone is shared across {phone['report_count']} reports."],
+        "gaps": [], "next_steps": []})
+    out = core.verify(core.brief(net, cases), cases)
+    assert out["brief"]["checked"]
+    assert out["brief"]["why_linked"][0]["edge_ids"] == acct["edge_ids"]
+    assert out["brief"]["why_linked"][1]["edge_ids"] in [s["edge_ids"] for s in strong if s["kind"] == "phone"]
+
+
+def test_bare_sentence_with_a_wrong_count_is_rejected(fresh, monkeypatch):
+    net, cases = _hero(fresh)
+    _fake_serv(monkeypatch, {"summary": "Reports share an account.",
+                             "why_linked": ["The account is shared across 12 reports."], "gaps": [], "next_steps": []})
+    out = core.brief(net, cases)
+    assert out["brief"]["summary"] == core._template_brief(net, cases)["summary"]

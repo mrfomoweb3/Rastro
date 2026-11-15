@@ -237,10 +237,31 @@ def _brief_from_model(raw: dict, net: dict) -> dict:
     """Turn SERV's JSON into a Brief. The model points at shared details by id; code looks up
     the real links for each one. An id it made up is kept as-is so the fact-check rejects it."""
     by_id = {s["entity_id"]: s for s in shared_entities(net)}
+    strong = [s for s in by_id.values() if s["strength"] == "strong"]
+    kinds = {"account": r"account", "phone": r"phone", "url": r"website|site|link|url", "email": r"e-?mail",
+             "wallet": r"wallet"}
+    used: set = set()
+
+    def match(claim: str) -> List[str]:
+        """A claim given as a bare sentence: find the one shared detail it describes, by its
+        kind and its report count. No unique match means no ids, and the fact-check fails it."""
+        nums = {int(n) for n in re.findall(r"\b\d+\b", claim)}
+        for s in strong:
+            if s["entity_id"] in used or s["report_count"] not in nums:
+                continue
+            if re.search(kinds.get(s["kind"], "^$"), claim, re.I):
+                used.add(s["entity_id"])
+                return [s["entity_id"]]
+        return []
+
     why = []
     for w in (raw.get("why_linked") or []):
+        if isinstance(w, str):
+            w = {"claim": w, "detail_ids": match(w)}
         if not isinstance(w, dict):
             continue
+        for d in (w.get("detail_ids") or []):
+            used.add(str(d))
         ids: List[str] = []
         for d in (w.get("detail_ids") or []):
             s = by_id.get(str(d))
@@ -333,7 +354,7 @@ def brief(net: dict, cases: List[dict]) -> dict:
 _ID_RE = re.compile(r"\b[A-Z]{1,2}-[A-Z0-9-]*\d")
 _NUM_RE = re.compile(r"(?<![A-Za-z\d.])\$?(\d[\d,]*(?:\.\d+)?)")
 _BANNED = re.compile(r"\b(guilty|convicted|criminal|is a (?:scammer|fraudster)|are (?:scammers|fraudsters))\b", re.I)
-_REVIEW = re.compile(r"\b(?:review is (?:needed|required)|needs? (?:a )?(?:human |manual )?review|requires? (?:human |manual )?review)\b", re.I)
+_REVIEW = re.compile(r"\b(?:review is (?:still )?(?:needed|required|warranted)|needs? (?:a )?(?:human |manual )?review|requires? (?:human |manual )?review)\b", re.I)
 # Internal wording that must never reach an analyst's screen in a SERV-written brief.
 _INTERNAL = re.compile(r"\b(?:R[0-7]|U[1-4])\b|[a-z]_[a-z]|\b(?:confidence|typology|score|edge|detail_id)\b"
                        r"|\d{4}-\d{2}-\d{2}", re.I)
