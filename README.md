@@ -4,7 +4,7 @@
 
 OpenServ SERV Hackathon Edition 02, Open Track. **All data is synthetic.**
 
-**Live demo:** https://web-ten-liart-20.vercel.app · analyst console with the live demo panel: https://web-ten-liart-20.vercel.app/console?demo=1 · engine: https://rastro-engine.fly.dev/health
+**Live demo:** https://rastro.mrfomolabs.xyz · analyst console with the live demo panel: https://rastro.mrfomolabs.xyz/console?demo=1 · engine: https://rastro-engine.fly.dev/health
 
 Rastro never freezes money, never blocks an account and never says anyone is guilty. It ranks, packages and explains. Humans act.
 
